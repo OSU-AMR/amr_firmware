@@ -23,6 +23,14 @@
     // Used by various Titan Firmware tools to properly identify boards by serial number
     "serialMap": [
         // ========================================
+        // AMR Boards
+        // ========================================
+        {
+            "name": "AMR test pico",
+            "boardType": "amr/amr_pico",
+            "serial": "E660B44007811C2A"
+        },
+        // ========================================
         // 2023-2024 (Talos) Boards
         // ========================================
         {
@@ -76,11 +84,11 @@
             "boardType": "mk2/actuator_board",
             "serial": "E662145507614B27"
         },
-        {
-            "name": "Mark 2 Power Board",
-            "boardType": "mk2/power_board",
-            "serial": "E662145507404F27"
-        },
+        // {
+        //     "name": "Mark 2 Power Board",
+        //     "boardType": "mk2/power_board",
+        //     "serial": "E660B44007811C2A"
+        // },
         // Smart Battery Housings
         {
             "name": "Smart Battery Housing #1",
