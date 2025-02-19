@@ -1,5 +1,6 @@
 #include "ros.h"
 #include "safety_interface.h"
+#include "simplefoc/BLDCMotor.h"
 
 #include "driver/led.h"
 #include "pico/stdlib.h"
@@ -160,7 +161,24 @@ int main() {
     safety_setup();
     led_init();
     micro_ros_init_error_handling();
-// TODO: Put any additional hardware initialization code here
+    // TODO: Put any additional hardware initialization code here
+
+    BLDCMotor_t motor;
+    make_BLDCMotor(&motor, 11);
+
+    BLDCDRIVER3PWM_t driver;
+    make_BLDCDriver3PWM(&driver, 10, 11, 12, 13);
+
+    driver.voltage_power_supply = 16;
+    driver.voltage_limit = 16;
+    driver_init(&driver);
+    motor.driver = &driver;  // Link driver
+
+    motor.voltage_limit = 16;
+    motor.controller = velocity_openloop;  // Doesn't actually matter (I think)
+
+    motor_init(&motor);
+    sleep_ms(1000);
 
 // Initialize ROS Transports
 // TODO: If a transport won't be needed for your specific build (like it's lacking the proper port), you can remove it
@@ -192,6 +210,8 @@ int main() {
     // Meaning, don't block, either poll it in the background task or send it to an interrupt
     bool ros_initialized = false;
     while (true) {
+        motor_move(&motor, 5);
+
         // Do background tasks
         tick_background_tasks();
 
