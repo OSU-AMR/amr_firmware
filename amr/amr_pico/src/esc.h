@@ -6,8 +6,8 @@
 #include "hardware/pwm.h"
 #include "titan/logger.h"
 
-#define PWM_FREQ_HZ 50
-#define PWM_PERIOD_US 20000
+#define PWM_FREQ_HZ 200
+#define PWM_PERIOD_US 5000
 
 #define ESC_INIT_US 1590
 #define ESC_STARTUP_DELAY_MS 7000
@@ -53,14 +53,14 @@ void enable_escs() {
     left_slice = pwm_gpio_to_slice_num(LEFT_ESC_PIN);
     left_channel = pwm_gpio_to_channel(LEFT_ESC_PIN);
     // esc_set_us(left_slice, left_channel, ESC_INIT_US);
-    pwm_set_freq_duty(left_slice, left_channel, 50, 1500.0f / 20000.0f * 100.0f);
+    pwm_set_freq_duty(left_slice, left_channel, PWM_FREQ_HZ, 1500.0f / 20000.0f * 100.0f);
     pwm_set_enabled(left_slice, true);
 
     gpio_set_function(RIGHT_ESC_PIN, GPIO_FUNC_PWM);
     right_slice = pwm_gpio_to_slice_num(RIGHT_ESC_PIN);
     right_channel = pwm_gpio_to_channel(RIGHT_ESC_PIN);
     // esc_set_us(right_slice, right_channel, ESC_INIT_US);
-    pwm_set_freq_duty(right_slice, right_channel, 50, 1500.0f / 20000.0f * 100.0f);
+    pwm_set_freq_duty(right_slice, right_channel, PWM_FREQ_HZ, 1500.0f / 20000.0f * 100.0f);
     pwm_set_enabled(right_slice, true);
 
     LOG_INFO("Issued startup PWM");
