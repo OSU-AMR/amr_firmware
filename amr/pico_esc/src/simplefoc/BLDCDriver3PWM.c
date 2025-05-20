@@ -1,6 +1,7 @@
 #include "BLDCDriver3PWM.h"
 
 #include "hardware/gpio.h"
+#include "titan/logger.h"
 
 void make_BLDCDriver3PWM(BLDCDRIVER3PWM_t *driver, int phA, int phB, int phC, int en1) {
     // Pin initialization
@@ -58,7 +59,8 @@ int driver_init(BLDCDRIVER3PWM_t *driver) {
     // pinMode(pwmA, OUTPUT);
     // pinMode(pwmB, OUTPUT);
     // pinMode(pwmC, OUTPUT);
-    gpio_set_dir(driver->enableA_pin, true);
+    gpio_init(driver->enableA_pin);
+    gpio_set_dir(driver->enableA_pin, GPIO_OUT);
     // if (_isset(enableA_pin))
     //     pinMode(enableA_pin, OUTPUT);
     // if (_isset(enableB_pin))
@@ -109,6 +111,8 @@ void driver_setPwm(BLDCDRIVER3PWM_t *driver, float Ua, float Ub, float Uc) {
     driver->dc_a = _constrain(Ua / driver->voltage_power_supply, 0.0f, 1.0f);
     driver->dc_b = _constrain(Ub / driver->voltage_power_supply, 0.0f, 1.0f);
     driver->dc_c = _constrain(Uc / driver->voltage_power_supply, 0.0f, 1.0f);
+
+    // LOG_INFO("Got phase duty cycles of %f, %f, %f", driver->dc_a, driver->dc_b, driver->dc_c);
 
     // hardware specific writing
     // hardware specific function - depending on driver and mcu

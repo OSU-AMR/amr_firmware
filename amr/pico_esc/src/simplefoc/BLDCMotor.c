@@ -4,6 +4,7 @@
 
 #include "hardware/timer.h"
 #include "pico/time.h"
+#include "titan/logger.h"
 
 #include <math.h>
 
@@ -75,11 +76,17 @@ void make_BLDCMotor(BLDCMotor_t *motor, int pp) {
     motor->current.d = 0;
 
     // voltage bemf
-    motor->voltage_bemf = 0;
+    motor->voltage_bemf = 0.0f;
 
     // Initialize phase voltages U alpha and U beta used for inverse Park and Clarke transform
     motor->Ualpha = 0;
     motor->Ubeta = 0;
+
+    motor->shaft_angle = 0.0f;
+
+    // New additions for C
+    motor->shaft_velocity_sp = 0.0f;
+    motor->open_loop_timestamp = 0l;
 
     // monitor_port
     // motor->monitor_port = nullptr;
@@ -106,6 +113,7 @@ int motor_init(BLDCMotor_t *motor) {
     }
     motor->motor_status = motor_initializing;
     // SIMPLEFOC_DEBUG("MOT: Init");
+    LOG_INFO("Initializing motor");
 
     // sanity check for the voltage limit configuration
     if (motor->voltage_limit > motor->driver->voltage_limit)
@@ -140,6 +148,7 @@ int motor_init(BLDCMotor_t *motor) {
     sleep_ms(500);
     // enable motor
     // SIMPLEFOC_DEBUG("MOT: Enable driver.");
+    LOG_INFO("Enabling driver");
     motor_enable(motor);
     // _delay(500);
     sleep_ms(500);
@@ -467,6 +476,8 @@ void motor_move(BLDCMotor_t *motor, float new_target) {
     //     target = new_target;
     motor->target = new_target;
 
+    // LOG_INFO("Got target of %f", motor->target);
+
     // downsampling (optional)
     // if (motion_cnt++ < motion_downsample)
     //     return;
@@ -691,6 +702,8 @@ void motor_setPhaseVoltage(BLDCMotor_t *motor, float Uq, float Ud, float angle_e
     // Inverse Park + Clarke transformation
     _sincos(angle_el, &_sa, &_ca);
 
+    // LOG_INFO("Angle: %f, Cos: %f, Sin: %f", angle_el, _ca, _sa);
+
     // Inverse park transform
     motor->Ualpha = _ca * Ud - _sa * Uq;  // -sin(angle) * Uq;
     motor->Ubeta = _sa * Ud + _ca * Uq;   //  cos(angle) * Uq;
@@ -699,6 +712,8 @@ void motor_setPhaseVoltage(BLDCMotor_t *motor, float Uq, float Ud, float angle_e
     motor->Ua = motor->Ualpha;
     motor->Ub = -0.5f * motor->Ualpha + _SQRT3_2 * motor->Ubeta;
     motor->Uc = -0.5f * motor->Ualpha - _SQRT3_2 * motor->Ubeta;
+
+    // LOG_INFO("Before center: %f, %f, %f", motor->Ua, motor->Ub, motor->Uc);
 
     center = motor->driver->voltage_limit / 2;
     // if (foc_modulation == FOCModulationType::SpaceVectorPWM) {
@@ -721,6 +736,8 @@ void motor_setPhaseVoltage(BLDCMotor_t *motor, float Uq, float Ud, float angle_e
         motor->Ub += center;
         motor->Uc += center;
     }
+
+    // LOG_INFO("Got motor phase voltages %f, %f, %f", motor->Ua, motor->Ub, motor->Uc);
 
     //     break;
     // }
@@ -753,6 +770,8 @@ float motor_velocityOpenloop(BLDCMotor_t *motor, float target_velocity) {
 
     // calculate the necessary angle to achieve target velocity
     motor->shaft_angle = _normalizeAngle(motor->shaft_angle + target_velocity * Ts);
+    // LOG_INFO("Got angle as %f", motor->shaft_angle);
+
     // for display purposes
     motor->shaft_velocity = target_velocity;
 

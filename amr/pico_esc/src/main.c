@@ -3,6 +3,7 @@
 #include "simplefoc/BLDCMotor.h"
 
 #include "driver/led.h"
+#include "hardware/pwm.h"
 #include "pico/stdlib.h"
 #include "titan/logger.h"
 #include "titan/version.h"
@@ -139,7 +140,7 @@ static void tick_background_tasks() {
     // Update the LED (so it can alternate between colors if a fault is present)
     // This is only required if CAN transport is disabled, as the led_network_online_set will update the LEDs for us
     if (timer_ready(&next_led_update, LED_UPTIME_INTERVAL_MS, false)) {
-        led_update_pins();
+        // led_update_pins();
     }
 #endif
 
@@ -159,7 +160,7 @@ int main() {
     // Perform all initializations
     // NOTE: Safety must be the first thing up after stdio, so the watchdog will be enabled
     safety_setup();
-    led_init();
+    // led_init();
     micro_ros_init_error_handling();
     // TODO: Put any additional hardware initialization code here
 
@@ -170,15 +171,18 @@ int main() {
     make_BLDCDriver3PWM(&driver, 10, 11, 12, 13);
 
     driver.voltage_power_supply = 16;
-    driver.voltage_limit = 16;
+    driver.voltage_limit = 3;
     driver_init(&driver);
     motor.driver = &driver;  // Link driver
 
-    motor.voltage_limit = 16;
-    motor.controller = velocity_openloop;  // Doesn't actually matter (I think)
+    motor.voltage_limit = 3;
+    motor.controller = velocity_openloop;
 
     motor_init(&motor);
     sleep_ms(1000);
+
+    // struct RP2040DriverParams *params = _configure3PWM(24000, 10, 11, 12);
+    // _writeDutyCycle3PWM(0.5, 1, 0, params);
 
 // Initialize ROS Transports
 // TODO: If a transport won't be needed for your specific build (like it's lacking the proper port), you can remove it
@@ -210,7 +214,7 @@ int main() {
     // Meaning, don't block, either poll it in the background task or send it to an interrupt
     bool ros_initialized = false;
     while (true) {
-        motor_move(&motor, 5);
+        motor_move(&motor, 10.0f);
 
         // Do background tasks
         tick_background_tasks();
@@ -225,7 +229,7 @@ int main() {
 
                 if (ros_init() == RCL_RET_OK) {
                     ros_initialized = true;
-                    led_ros_connected_set(true);
+                    // led_ros_connected_set(true);
                     safety_init();
                     start_ros_timers();
                 }
@@ -243,7 +247,7 @@ int main() {
             LOG_INFO("Lost connection to ROS");
             ros_fini();
             safety_deinit();
-            led_ros_connected_set(false);
+            // led_ros_connected_set(false);
             ros_initialized = false;
         }
         else {

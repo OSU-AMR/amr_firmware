@@ -125,6 +125,7 @@ void *_configure3PWM(long pwm_frequency, const int pinA, const int pinB, const i
     // else
     //     pwm_frequency = _constrain(pwm_frequency, _PWM_FREQUENCY_MIN, _PWM_FREQUENCY_MAX);
     params->pwm_frequency = _PWM_FREQUENCY;
+    pwm_frequency = _PWM_FREQUENCY;
     setupPWM(pinA, pwm_frequency, !SIMPLEFOC_PWM_ACTIVE_HIGH, params, 0);
     setupPWM(pinB, pwm_frequency, !SIMPLEFOC_PWM_ACTIVE_HIGH, params, 1);
     setupPWM(pinC, pwm_frequency, !SIMPLEFOC_PWM_ACTIVE_HIGH, params, 2);
