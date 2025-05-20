@@ -117,6 +117,9 @@ int main() {
     // sleep_ms(2000);
     encoder_init(&enc, 27, 28, 2048);
 
+    encoder enc2;
+    encoder_init(&enc2, 30, 31, 2048);
+
     while (true) {
         watchdog_update();
 

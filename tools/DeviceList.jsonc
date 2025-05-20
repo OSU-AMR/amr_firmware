@@ -84,11 +84,11 @@
             "boardType": "mk2/actuator_board",
             "serial": "E662145507614B27"
         },
-        // {
-        //     "name": "Mark 2 Power Board",
-        //     "boardType": "mk2/power_board",
-        //     "serial": "E660B44007811C2A"
-        // },
+        {
+            "name": "Mark 2 Power Board",
+            "boardType": "mk2/power_board",
+            "serial": "E663B035974E3924"
+        },
         // Smart Battery Housings
         {
             "name": "Smart Battery Housing #1",

@@ -782,7 +782,7 @@ void motor_setPhaseVoltage(BLDCMotor_t *motor, float Uq, float Ud, float angle_e
         motor->Uc += center;
     }
 
-    LOG_INFO("Got motor phase voltages %f, %f, %f", motor->Ua, motor->Ub, motor->Uc);
+    // LOG_INFO("Got motor phase voltages %f, %f, %f", motor->Ua, motor->Ub, motor->Uc);
 
     //     break;
     // }
