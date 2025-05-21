@@ -1,6 +1,6 @@
 [submodule "lib/pico-sdk"]
 	path = lib/pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk
-[submodule "lib/titan_canmore"]
-	path = lib/titan_canmore
-	url = https://github.com/osu-uwrt/titan_canmore
+[submodule "lib/amr_canmore"]
+	path = lib/amr_canmore
+	url = https://github.com/OSU-AMR/amr_canmore

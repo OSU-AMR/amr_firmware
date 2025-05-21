@@ -5,7 +5,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 set(NO_AMENT 1)
-add_subdirectory(${REPO_DIR}/lib/titan_canmore titan_canmore)
+add_subdirectory(${REPO_DIR}/lib/amr_canmore titan_canmore)
 
 # Define sources
 add_library(canmore_dbg_cpp INTERFACE)
