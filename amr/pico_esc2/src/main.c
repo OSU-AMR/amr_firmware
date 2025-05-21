@@ -1,5 +1,4 @@
-#include "simplefoc/BLDCMotor.h"
-
+#include "driver/drv8313.h"
 #include "hardware/watchdog.h"
 #include "pico/stdlib.h"
 #include "titan/version.h"

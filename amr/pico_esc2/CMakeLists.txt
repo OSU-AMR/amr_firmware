@@ -56,5 +56,7 @@ target_link_libraries(pico_sdk_example PUBLIC
     titan_safety    # Handles critical code (Watchdog, Kill Switch, Fault Reporting)
     hardware_pwm
 
+    driver_drv8313
+
     # TODO: Add any additional hardware here (ex. hardware_adc)
 )

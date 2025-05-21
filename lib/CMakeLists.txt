@@ -10,6 +10,7 @@ add_subdirectory(driver_status_strip/)
 add_subdirectory(driver_wiznet/)
 add_subdirectory(driver_encoder/)
 add_subdirectory(driver_rfid/)
+add_subdirectory(driver_drv8313/)
 add_subdirectory(micro_ros_pico/)
 # pico-sdk/ is handled specially in global_defs.cmake
 # titan_boards/ is handled specially in global_defs.cmake

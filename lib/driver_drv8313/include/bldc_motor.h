@@ -9,7 +9,7 @@
 // #include "common/defaults.h"
 // #include "common/foc_utils.h"
 // #include "common/time_utils.h"
-#include "BLDCDriver3PWM.h"
+#include "bldc_driver_3pwm.h"
 
 // monitoring bitmap
 #define _MON_TARGET 0b1000000  // monitor target value

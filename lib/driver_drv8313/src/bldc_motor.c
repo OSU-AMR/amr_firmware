@@ -1,6 +1,6 @@
-#include "BLDCMotor.h"
+#include "bldc_motor.h"
 
-#include "BLDCDriver3PWM.h"
+#include "bldc_driver_3pwm.h"
 
 #include "hardware/timer.h"
 #include "pico/time.h"
