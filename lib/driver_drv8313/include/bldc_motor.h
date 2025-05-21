@@ -140,37 +140,8 @@ typedef struct BLDCMotor {
     // configuration structures
     TorqueControlType_t torque_controller;  //!< parameter determining the torque control type
     MotionControlType_t controller;         //!< parameter determining the control loop to be used
-
-    // // controllers and low pass filters
-    // PIDController PID_current_q { DEF_PID_CURR_P, DEF_PID_CURR_I, DEF_PID_CURR_D, DEF_PID_CURR_RAMP,
-    //                               DEF_POWER_SUPPLY };  //!< parameter determining the q current PID config
-    // PIDController PID_current_d { DEF_PID_CURR_P, DEF_PID_CURR_I, DEF_PID_CURR_D, DEF_PID_CURR_RAMP,
-    //                               DEF_POWER_SUPPLY };  //!< parameter determining the d current PID config
-    // LowPassFilter LPF_current_q {
-    //     DEF_CURR_FILTER_Tf
-    // };  //!<  parameter determining the current Low pass filter configuration
-    // LowPassFilter LPF_current_d {
-    //     DEF_CURR_FILTER_Tf
-    // };  //!<  parameter determining the current Low pass filter configuration
-    // PIDController PID_velocity { DEF_PID_VEL_P, DEF_PID_VEL_I, DEF_PID_VEL_D, DEF_PID_VEL_RAMP,
-    //                              DEF_PID_VEL_LIMIT };  //!< parameter determining the velocity PID configuration
-    // PIDController P_angle { DEF_P_ANGLE_P, 0, 0, 0,
-    //                         DEF_VEL_LIM };  //!< parameter determining the position PID configuration
-    // LowPassFilter LPF_velocity {
-    //     DEF_VEL_FILTER_Tf
-    // };                                //!<  parameter determining the velocity Low pass filter configuration
-    // LowPassFilter LPF_angle { 0.0 };  //!<  parameter determining the angle low pass filter configuration
-    // unsigned int motion_downsample =
-    //     DEF_MOTION_DOWNSMAPLE;    //!< parameter defining the ratio of downsampling for move commad
-    // unsigned int motion_cnt = 0;  //!< counting variable for downsampling for move commad
-
-    // sensor related variabels
-    // float sensor_offset;                  //!< user defined sensor zero offset
-    // float zero_electric_angle = NOT_SET;  //!< absolute zero electric angle - if available
-    Direction_t
-        sensor_direction;  //!< default is CW. if sensor_direction == Direction::CCW then direction will be flipped
-    //                          //!< compared to CW. Set to UNKNOWN to set by calibration
-    // bool pp_check_result = false;  //!< the result of the PP check, if run during loopFOC
+    Direction_t sensor_direction;  //!< default is CW. if sensor_direction == Direction::CCW then direction will be
+                                   //!< flipped compared to CW. Set to UNKNOWN to set by calibration
 } BLDCMotor_t;
 
 /**
@@ -188,19 +159,6 @@ int motor_init(BLDCMotor_t *motor);
 void motor_disable(BLDCMotor_t *motor);
 /** Motor enable function */
 void motor_enable(BLDCMotor_t *motor);
-
-/**
- * Function initializing FOC algorithm
- * and aligning sensor's and motors' zero position
- */
-int motor_initFOC(BLDCMotor_t *motor);
-/**
- * Function running FOC algorithm in real-time
- * it calculates the gets motor angle and sets the appropriate voltages
- * to the phase pwm signals
- * - the faster you can run it the better Arduino UNO ~1ms, Bluepill ~ 100us
- */
-void motor_loopFOC(BLDCMotor_t *motor);
 
 /**
  * Function executing the control loops set by the controller parameter of the BLDCMotor.
@@ -222,13 +180,6 @@ void motor_move(BLDCMotor_t *motor, float target);
  */
 void motor_setPhaseVoltage(BLDCMotor_t *motor, float Uq, float Ud, float angle_el);
 
-/** Sensor alignment to electrical 0 angle of the motor */
-int motor_alignSensor(BLDCMotor_t *motor);
-/** Current sense and motor phase alignment */
-int motor_alignCurrentSense(BLDCMotor_t *motor);
-/** Motor and sensor alignment to the sensors absolute 0 angle  */
-int motor_absoluteZeroSearch(BLDCMotor_t *motor);
-
 // Open loop motion control
 /**
  * Function (iterative) generating open loop movement for target velocity
@@ -237,12 +188,5 @@ int motor_absoluteZeroSearch(BLDCMotor_t *motor);
  * @param target_velocity - rad/s
  */
 float motor_velocityOpenloop(BLDCMotor_t *motor, float target_velocity);
-/**
- * Function (iterative) generating open loop movement towards the target angle
- * it uses voltage_limit and velocity_limit variables
- *
- * @param target_angle - rad
- */
-float motor_angleOpenloop(BLDCMotor_t *motor, float target_angle);
 
 #endif
