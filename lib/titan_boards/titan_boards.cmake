@@ -15,7 +15,7 @@ if (DEFINED UWRT_ROBOT)
 endif()
 
 # Include canmore client ids to all files so each board definition can directly refer to where it belongs to
-set(CANMORE_CLIENT_ID_HEADER "${REPO_DIR}/lib/titan_canmore/canmore/include/canmore/client_ids.h")
+set(CANMORE_CLIENT_ID_HEADER "${REPO_DIR}/lib/amr_canmore/canmore/include/canmore/client_ids.h")
 if (NOT EXISTS "${CANMORE_CLIENT_ID_HEADER}")
     message(FATAL_ERROR "Unable to locate client id definition header: ${CANMORE_CLIENT_ID_HEADER}")
 endif()
