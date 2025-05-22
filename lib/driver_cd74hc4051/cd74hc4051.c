@@ -11,7 +11,6 @@
 uint s_pins[NUM_SELECTOR_PINS];
 uint adc_num;
 
-// Returns ADC reading scaled as a voltage on [0, 3.3]
 float multiplexer_decode_analog(uint num) {
     // Choose input by setting selector pins
     for (int i = 0; i < NUM_SELECTOR_PINS; i++) {
@@ -36,12 +35,13 @@ void multiplexer_init(uint read_pin, uint s0_pin, uint s1_pin, uint s2_pin) {
 
     adc_init();
     adc_gpio_init(read_pin);
-    adc_num = read_pin - MIN_ADC_PIN;
+    adc_num = read_pin - MIN_ADC_PIN;  // Shift to [0, 3] ADC number
 
     s_pins[0] = s0_pin;
     s_pins[1] = s1_pin;
     s_pins[2] = s2_pin;
 
+    // GPIO setup boilerplate. Makes selection 0 by default
     for (int i = 0; i < NUM_SELECTOR_PINS; i++) {
         gpio_init(s_pins[i]);
         gpio_put(s_pins[i], 0);
