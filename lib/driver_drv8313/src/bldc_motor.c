@@ -98,11 +98,9 @@ int motor_init(BLDCMotor_t *motor) {
         motor->sensor_direction = CW;
     }
 
-    sleep_ms(500);
     // enable motor
     LOG_INFO("Enabling driver");
     motor_enable(motor);
-    sleep_ms(500);
     motor->motor_status = motor_uncalibrated;
     return 1;
 }
