@@ -139,7 +139,7 @@ static void tick_background_tasks() {
     // Update the LED (so it can alternate between colors if a fault is present)
     // This is only required if CAN transport is disabled, as the led_network_online_set will update the LEDs for us
     if (timer_ready(&next_led_update, LED_UPTIME_INTERVAL_MS, false)) {
-        led_update_pins();
+        // led_update_pins();
     }
 #endif
 
@@ -159,7 +159,7 @@ int main() {
     // Perform all initializations
     // NOTE: Safety must be the first thing up after stdio, so the watchdog will be enabled
     safety_setup();
-    led_init();
+    // led_init();
     micro_ros_init_error_handling();
     // TODO: Put any additional hardware initialization code here
     core1_init();
