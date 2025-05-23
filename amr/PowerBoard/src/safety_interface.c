@@ -1,6 +1,7 @@
 #include "safety_interface.h"
 
 #include "driver/led.h"
+#include "hardware/gpio.h"
 #include "titan/logger.h"
 
 #include <riptide_msgs2/msg/kill_switch_report.h>
@@ -12,6 +13,10 @@
 
 #ifdef MICRO_ROS_TRANSPORT_CAN
 #include "driver/canbus.h"
+
+//
+// TODO: Uncomment CAN references for actual board
+//
 
 // State values for software kill pin
 #define SOFTKILL_STATE_KILL false
@@ -30,7 +35,7 @@ static inline void safety_interface_refresh_physical_kill_switch(void) {
 
 static void safety_interface_gpio_callback(uint gpio, uint32_t events) {
     // Required since we're taking over the GPIO interrupt (and the SDK only supports 1 interrupt callback per core)
-    can_mcp251xfd_interrupt_cb(gpio, events);
+    // can_mcp251xfd_interrupt_cb(gpio, events);
     if (gpio == PHYS_KILLSWITCH_PIN) {
         safety_interface_refresh_physical_kill_switch();
     }
@@ -60,17 +65,30 @@ void safety_handle_kill(void) {
     // Note: Any calls made in this function must be safe to be called from interrupts
     // This is because safety_kill_switch_update can be called from interrupts
 
-    // TODO: Modify this function to add callbacks when system is killed
     led_killswitch_set(false);
+
+    if (!prev_kill_state) {
+        prev_kill_state = true;
+        safety_interface_kill_switch_refreshed = true;
+    }
 }
 
 void safety_handle_enable(void) {
-    // TODO: Modify this function to add callbacks for when system is enabled
-
     led_killswitch_set(true);
+
+    if (prev_kill_state) {
+        prev_kill_state = false;
+        safety_interface_kill_switch_refreshed = true;
+    }
 }
 
 void safety_interface_setup(void) {
+    gpio_init(PHYS_KILLSWITCH_PIN);
+    gpio_pull_up(PHYS_KILLSWITCH_PIN);
+    gpio_set_dir(PHYS_KILLSWITCH_PIN, GPIO_IN);
+    gpio_set_irq_enabled_with_callback(PHYS_KILLSWITCH_PIN, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true,
+                                       &safety_interface_gpio_callback);
+
 #ifdef MICRO_ROS_TRANSPORT_CAN
     canbus_set_internal_error_cb(safety_handle_can_internal_error);
 #endif
@@ -80,7 +98,9 @@ void safety_interface_init(void) {
     // TODO: Modify this function to add code to be called during safety_init
 }
 
-void safety_interface_tick(void) {}
+void safety_interface_tick(void) {
+    safety_interface_refresh_physical_kill_switch();
+}
 
 void safety_interface_deinit(void) {
     // TODO: Modify this function to add code to be called during safety_deinit
