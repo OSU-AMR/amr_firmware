@@ -5,12 +5,12 @@ cmake_minimum_required(VERSION 3.13)
 # For example, if you want to use lib/titan_boards/include/boards/mk2/esc_board.h, set this to mk2/esc_board
 # Is is preferred to define pins in the board header file and refer to that name rather than hardcoding names
 # This also impacts the upload_tool for automatic device selection
-set(PICO_BOARD mk2/power_board)  # TODO: Set this to your target board
+set(PICO_BOARD amr/esc_board)  # TODO: Set this to your target board
 
 # The Target Robot
 # These can be found in lib/titan_boards/include/robots
 # Store any robot dependent configuration values in these files
-set(UWRT_ROBOT talos)  # TODO: Set this to your target robot
+set(UWRT_ROBOT amr)  # TODO: Set this to your target robot
 
 # Include global definitions
 execute_process(COMMAND git rev-parse --show-cdup
