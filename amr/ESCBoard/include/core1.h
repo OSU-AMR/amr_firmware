@@ -1,8 +1,12 @@
 #ifndef CORE1_H
 #define CORE1_H
 
+#include "pico/stdlib.h"
+
 void core1_init();
 
-#define NUM_MOTORS 2
+void core1_update_target_rpm(const float *rps);
+
+#define NUM_MOTORS 1
 
 #endif  // CORE1_H

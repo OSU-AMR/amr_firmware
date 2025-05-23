@@ -31,7 +31,7 @@ static volatile struct core1_cmd_shared_mem {
     /**
      * @brief The target RPS for the controller. Provided by ROS.
      */
-    int16_t rps[NUM_MOTORS];
+    float rps[NUM_MOTORS];
 
     /**
      * @brief The time after which the target RPS command is considered stale, and the thrusters should be disabled.
@@ -44,7 +44,7 @@ static volatile struct core1_cmd_shared_mem {
 BLDCMotor_t motors[NUM_MOTORS];
 BLDCDRIVER3PWM_t drivers[NUM_MOTORS];
 
-const float motor_inversions[NUM_MOTORS] = { 1.0f, -1.0f };
+const float motor_inversions[NUM_MOTORS] = { 1.0f };
 
 static void motor_make(uint idx, uint p0_pin, uint p1_pin, uint p2_pin, uint en_pin) {
     make_BLDCMotor(&motors[idx], NUM_POLE_PAIRS);
@@ -63,7 +63,7 @@ static void motor_make(uint idx, uint p0_pin, uint p1_pin, uint p2_pin, uint en_
 
 static void __time_critical_func(core1_main)() {
     motor_make(0, 10, 11, 12, 13);
-    motor_make(1, 0, 1, 2, 3);
+    // motor_make(1, 0, 1, 2, 3);
 
     // sleep_ms(1000);
 
@@ -76,11 +76,16 @@ static void __time_critical_func(core1_main)() {
         // val = !val;
         // sleep_ms(100);
 
-        // TODO: This caching needs to happen under lock
-        int16_t rps_cached[NUM_MOTORS];
+        // This caching has to happen under lock
+        uint32_t irq = spin_lock_blocking(target_req.lock);
+        float target_rps_cached[NUM_MOTORS];
+        for (int i = 0; i < NUM_MOTORS; i++) {
+            target_rps_cached[i] = target_req.rps[i];
+        }
+        spin_unlock(target_req.lock, irq);
 
         for (int i = 0; i < NUM_MOTORS; i++) {
-            motor_move(&motors[i], rps_cached[i]);
+            motor_move(&motors[i], target_rps_cached[i]);
         }
     }
 }
@@ -92,6 +97,19 @@ void core1_init() {
     // gpio_init(PICO_LED_PIN);
     // gpio_put(PICO_LED_PIN, 0);
     // gpio_set_dir(PICO_LED_PIN, GPIO_OUT);
+}
+
+void core1_update_target_rpm(const float *rps) {
+    // Compute expiration outside of spin lock to avoid unnecessary work in critical section.
+    // absolute_time_t expiration = make_timeout_time_ms(DSHOT_MIN_UPDATE_RATE_MS);
+
+    // Update shared variables under lock
+    uint32_t irq = spin_lock_blocking(target_req.lock);
+    // target_req.rpm_expiration = expiration;
+    for (int i = 0; i < NUM_MOTORS; i++) {
+        target_req.rps[i] = rps[i];
+    }
+    spin_unlock(target_req.lock, irq);
 }
 
 // #include "core1.h"
