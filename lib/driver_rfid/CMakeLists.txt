@@ -9,6 +9,6 @@ target_include_directories(driver_rfid INTERFACE
 )
 
 target_link_libraries(driver_rfid INTERFACE
-    hardware_spi
     titan_logger
+    driver_pio_spi
 )

@@ -16,7 +16,7 @@
 #ifndef MFRC522_h
 #define MFRC522_h
 
-#include "hardware/spi.h"
+#include "driver/pio_spi.h"
 #include "pico/stdlib.h"
 
 #include <stdint.h>
@@ -287,7 +287,7 @@ typedef struct {
 struct MFRC522_T {
     Uid uid;  // Used by PICC_ReadCardSerial().
     // Variables used in the SSP(SPI) peripheral of the board
-    spi_inst_t *spi;      // Select SSP0 or SSP1
+    pio_spi_inst_t *spi;  // PIO SPI interface
     uint _chipSelectPin;  // = {1, 8}; // As default example use GPIO1[8]= P1_5
     uint8_t Tx_Buf[BUFFER_SIZE];
     uint8_t Rx_Buf[BUFFER_SIZE];
@@ -321,7 +321,7 @@ static inline void cs_deselect(const uint cs);
 /*******************************************************************************
  * Functions for manipulating the MFRC522
  *******************************************************************************/
-void PCD_Init(MFRC522Ptr_t mfrc, spi_inst_t *spi, uint miso_pin, uint mosi_pin, uint sck_pin, uint cs_pin);
+void PCD_Init(MFRC522Ptr_t mfrc, PIO pio_inst, uint miso_pin, uint mosi_pin, uint sck_pin, uint cs_pin);
 void PCD_Reset(MFRC522Ptr_t mfrc);
 void PCD_AntennaOn(MFRC522Ptr_t mfrc);
 void PCD_AntennaOff(MFRC522Ptr_t mfrc);

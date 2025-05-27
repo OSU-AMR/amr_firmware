@@ -6,10 +6,13 @@
 
 #include "driver/mfrc522.h"
 
+#include "hardware/clocks.h"
 #include "titan/logger.h"
 
 // ADT object allocation counter
 static int MFRC_Instance_Counter = 0;
+
+static pio_spi_inst_t spi;
 
 /**
  * Set up the data structures of an MFRC522 ADT object and return a pointer
@@ -50,7 +53,7 @@ void PCD_WriteRegister(MFRC522Ptr_t mfrc, uint8_t reg, uint8_t value) {
     msg[1] = value;
 
     cs_select(mfrc->_chipSelectPin);
-    spi_write_blocking(mfrc->spi, msg, 2);
+    pio_spi_write8_blocking(mfrc->spi, msg, 2);
     cs_deselect(mfrc->_chipSelectPin);
 }
 
@@ -72,7 +75,7 @@ void PCD_WriteNRegister(MFRC522Ptr_t mfrc,
     }
 
     cs_select(mfrc->_chipSelectPin);
-    spi_write_blocking(mfrc->spi, msg, count + 1);
+    pio_spi_write8_blocking(mfrc->spi, msg, count + 1);
     cs_deselect(mfrc->_chipSelectPin);
 }
 
@@ -87,8 +90,8 @@ uint8_t PCD_ReadRegister(MFRC522Ptr_t mfrc,
     const uint8_t msg = 0x80 | reg;
 
     cs_select(mfrc->_chipSelectPin);
-    spi_write_blocking(mfrc->spi, &msg, 1);
-    spi_read_blocking(mfrc->spi, 0, &buf, 1);
+    pio_spi_write8_blocking(mfrc->spi, &msg, 1);
+    pio_spi_read8_blocking(mfrc->spi, &buf, 1);
     cs_deselect(mfrc->_chipSelectPin);
     return buf;
 }
@@ -203,8 +206,7 @@ StatusCode PCD_CalculateCRC(MFRC522Ptr_t mfrc,
 /**
  * Initializes the MFRC522 chip.
  */
-void PCD_Init(MFRC522Ptr_t mfrc, spi_inst_t *spi, uint miso_pin, uint mosi_pin, uint sck_pin, uint cs_pin) {
-    mfrc->spi = spi;
+void PCD_Init(MFRC522Ptr_t mfrc, PIO pio_inst, uint miso_pin, uint mosi_pin, uint sck_pin, uint cs_pin) {
     // gpio_put(RESET_PIN, 0);
     // sleep_ms(1000);
     // gpio_put(RESET_PIN, 1);
@@ -214,13 +216,22 @@ void PCD_Init(MFRC522Ptr_t mfrc, spi_inst_t *spi, uint miso_pin, uint mosi_pin, 
     gpio_set_dir(cs_pin, GPIO_OUT);
     gpio_put(cs_pin, 1);
 
-    spi_init(spi, 1000000);
+    // spi_init(spi, 1000000);
 
-    spi_set_format(spi, 8, 0, 0, SPI_MSB_FIRST);
+    // spi_set_format(spi, 8, 0, 0, SPI_MSB_FIRST);
 
-    gpio_set_function(sck_pin, GPIO_FUNC_SPI);
-    gpio_set_function(mosi_pin, GPIO_FUNC_SPI);
-    gpio_set_function(miso_pin, GPIO_FUNC_SPI);
+    // gpio_set_function(sck_pin, GPIO_FUNC_SPI);
+    // gpio_set_function(mosi_pin, GPIO_FUNC_SPI);
+    // gpio_set_function(miso_pin, GPIO_FUNC_SPI);
+
+    // PIO SPI init
+    float clkdiv = clock_get_hz(clk_sys) / (4 * 1000000.0f);
+    int sm = pio_claim_unused_sm(pio_inst, true);
+    uint offset = pio_add_program(pio_inst, &spi_cpha0_program);
+    pio_spi_init(pio_inst, sm, offset, 8, clkdiv, 0, 0, sck_pin, mosi_pin, miso_pin);
+
+    spi = (pio_spi_inst_t) { pio_inst, sm, cs_pin };
+    mfrc->spi = &spi;
 
     PCD_WriteRegister(mfrc, CommandReg, PCD_SoftReset);
 
