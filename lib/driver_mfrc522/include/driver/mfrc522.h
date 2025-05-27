@@ -372,8 +372,6 @@ void PCD_DumpVersionToSerial(MFRC522Ptr_t mfrc);
 void PICC_DumpToSerial(MFRC522Ptr_t mfrc, Uid *uid);
 void PICC_DumpDetailsToSerial(Uid *uid);
 void PICC_DumpMifareClassicToSerial(MFRC522Ptr_t mfrc, Uid *uid, PICC_Type piccType, MIFARE_Key *key);
-void PICC_DumpMifareClassicSectorToSerial(MFRC522Ptr_t mfrc, Uid *uid, MIFARE_Key *key, uint8_t sector);
-void PICC_DumpMifareUltralightToSerial(MFRC522Ptr_t mfrc);
 
 // Advanced functions for MIFARE
 void MIFARE_SetAccessBits(uint8_t *accessBitBuffer, uint8_t g0, uint8_t g1, uint8_t g2, uint8_t g3);

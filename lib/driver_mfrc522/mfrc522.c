@@ -207,25 +207,12 @@ StatusCode PCD_CalculateCRC(MFRC522Ptr_t mfrc,
  * Initializes the MFRC522 chip.
  */
 void PCD_Init(MFRC522Ptr_t mfrc, PIO pio_inst, uint miso_pin, uint mosi_pin, uint sck_pin, uint cs_pin) {
-    // gpio_put(RESET_PIN, 0);
-    // sleep_ms(1000);
-    // gpio_put(RESET_PIN, 1);
-    // sleep_ms(50);
-
     gpio_init(cs_pin);
     gpio_set_dir(cs_pin, GPIO_OUT);
     gpio_put(cs_pin, 1);
 
-    // spi_init(spi, 1000000);
-
-    // spi_set_format(spi, 8, 0, 0, SPI_MSB_FIRST);
-
-    // gpio_set_function(sck_pin, GPIO_FUNC_SPI);
-    // gpio_set_function(mosi_pin, GPIO_FUNC_SPI);
-    // gpio_set_function(miso_pin, GPIO_FUNC_SPI);
-
     // PIO SPI init
-    float clkdiv = clock_get_hz(clk_sys) / (4 * 1000000.0f);
+    float clkdiv = clock_get_hz(clk_sys) / (4 * 1000000.0f);  // PIO SCK toggles every 4 cycles
     int sm = pio_claim_unused_sm(pio_inst, true);
     uint offset = pio_add_program(pio_inst, &spi_cpha0_program);
     pio_spi_init(pio_inst, sm, offset, 8, clkdiv, 0, 0, sck_pin, mosi_pin, miso_pin);
@@ -456,12 +443,6 @@ StatusCode PCD_CommunicateWithPICC(MFRC522Ptr_t mfrc,
                                    bool checkCRC        ///< In: True => The last two uint8_ts of the response is
                                                         /// assumed to be a CRC_A that must be validated.
 ) {
-    //		backData=NULL;
-    //		backLen=NULL;
-    //		validBits=NULL;
-    //		rxAlign=0;
-    //		checkCRC=false;
-
     uint8_t n, _validBits;
     unsigned int i;
 
@@ -1581,7 +1562,6 @@ void PICC_DumpToSerial(MFRC522Ptr_t mfrc, Uid *uid  ///< Pointer to Uid struct
         break;
 
     case PICC_TYPE_MIFARE_UL:
-        PICC_DumpMifareUltralightToSerial(mfrc);
         break;
 
     case PICC_TYPE_ISO_14443_4:
@@ -1667,253 +1647,9 @@ void PICC_DumpMifareClassicToSerial(MFRC522Ptr_t mfrc,
         break;
     }
 
-    // Dump sectors, highest address first.
-    if (no_of_sectors) {
-        LOG_INFO("Sector Block   0  1  2  3   4  5  6  7   8  9 10 11  12 13 "
-                 "14 15  AccessBits\r\n");
-        for (int8_t i = no_of_sectors - 1; i >= 0; i--) {
-            PICC_DumpMifareClassicSectorToSerial(mfrc, uid, key, i);
-        }
-    }
     PICC_HaltA(mfrc);  // Halt the PICC before stopping the encrypted session.
     PCD_StopCrypto1(mfrc);
 }  // End PICC_DumpMifareClassicToSerial()
-
-/**
- * Dumps memory contents of a sector of a MIFARE Classic PICC.
- * Uses PCD_Authenticate(), MIFARE_Read() and PCD_StopCrypto1.
- * Always uses PICC_CMD_MF_AUTH_KEY_A because only Key A can always read the
- * sector trailer access bits.
- */
-void PICC_DumpMifareClassicSectorToSerial(MFRC522Ptr_t mfrc,
-                                          Uid *uid,         ///< Pointer to Uid struct returned from a successful
-                                                            /// PICC_Select().
-                                          MIFARE_Key *key,  ///< Key A for the sector.
-                                          uint8_t sector    ///< The sector to dump, 0..39.
-) {
-    char string[2];
-    uint8_t acces_bit;
-    StatusCode status;
-    uint8_t firstBlock;    // Address of lowest address to dump actually last block
-                           // dumped)
-    uint8_t no_of_blocks;  // Number of blocks in sector
-    bool isSectorTrailer;  // Set to true while handling the "last" (ie highest
-                           // address) in the sector.
-
-    // The access bits are stored in a peculiar fashion.
-    // There are four groups:
-    //		g[3]	Access bits for the sector trailer, block 3 (for sectors 0-31)
-    // or block 15 (for sectors 32-39)
-    //		g[2]	Access bits for block 2 (for sectors 0-31) or blocks 10-14 (for
-    // sectors 32-39)
-    //		g[1]	Access bits for block 1 (for sectors 0-31) or blocks 5-9 (for
-    // sectors 32-39)
-    //		g[0]	Access bits for block 0 (for sectors 0-31) or blocks 0-4 (for
-    // sectors 32-39)
-    // Each group has access bits [C1 C2 C3]. In this code C1 is MSB and C3 is
-    // LSB.
-    // The four CX bits are stored together in a nible cx and an inverted nible
-    // cx_.
-    // uint8_t c1, c2, c3;     // Nibbles
-    // uint8_t c1_, c2_, c3_;  // Inverted nibbles
-    // bool invertedError;     // True if one of the inverted nibbles did not match
-    // uint8_t g[4];           // Access bits for each of the four groups.
-    // uint8_t group;          // 0-3 - active group for access bits
-    // bool firstInGroup;      // True for the first block dumped in the group
-
-    // // Determine position and size of sector.
-    // if (sector < 32) {  // Sectors 0..31 has 4 blocks each
-    //     no_of_blocks = 4;
-    //     firstBlock = sector * no_of_blocks;
-    // }
-    // else if (sector < 40) {  // Sectors 32-39 has 16 blocks each
-    //     no_of_blocks = 16;
-    //     firstBlock = 128 + (sector - 32) * no_of_blocks;
-    // }
-    // else {  // Illegal input, no MIFARE Classic PICC has more than 40 sectors.
-    //     return;
-    // }
-
-    // // Dump blocks, highest address first.
-    // uint8_t uint8_tCount;
-    // uint8_t buffer[18];
-    // uint8_t blockAddr;
-    // isSectorTrailer = true;
-    // for (int8_t blockOffset = no_of_blocks - 1; blockOffset >= 0; blockOffset--) {
-    //     blockAddr = firstBlock + blockOffset;
-    //     // Sector number - only on first line
-    //     if (isSectorTrailer) {
-    //         if (sector < 10)
-    //             printf("   ");  // Pad with spaces
-    //         else
-    //             printf("  ");  // Pad with spaces
-    //         sprintf(string, "%u", sector);
-    //         printf(string);
-    //         printf("   ");
-    //     }
-    //     else {
-    //         printf("       ");
-    //     }
-    //     // Block number
-    //     if (blockAddr < 10)
-    //         printf("   ");  // Pad with spaces
-    //     else {
-    //         if (blockAddr < 100)
-    //             printf("  ");  // Pad with spaces
-    //         else
-    //             printf(" ");  // Pad with spaces
-    //     }
-    //     sprintf(string, "%u", blockAddr);
-    //     printf(string);
-    //     printf("  ");
-    //     // Establish encrypted communications before reading the first block
-    //     if (isSectorTrailer) {
-    //         status = PCD_Authenticate(mfrc, PICC_CMD_MF_AUTH_KEY_A, firstBlock, key, uid);
-    //         if (status != STATUS_OK) {
-    //             printf("PCD_Authenticate() failed: ");
-    //             printf(GetStatusCodeName(status));
-    //             printf("\n");
-    //             return;
-    //         }
-    //     }
-    //     // Read block
-    //     uint8_tCount = sizeof(buffer);
-    //     status = MIFARE_Read(mfrc, blockAddr, buffer, &uint8_tCount);
-    //     if (status != STATUS_OK) {
-    //         printf("MIFARE_Read() failed: ");
-    //         printf(GetStatusCodeName(status));
-    //         continue;
-    //     }
-    //     // Dump data
-    //     for (uint8_t index = 0; index < 16; index++) {
-    //         if (buffer[index] < 0x10)
-    //             printf(" 0");
-    //         else
-    //             printf(" ");
-
-    //         // print the hexa value of a unsigned char
-    //         sprintf(string, "%02X", (char) buffer[index]);
-    //         printf(string);
-    //         if ((index % 4) == 3) {
-    //             printf(" ");
-    //         }
-    //     }
-    //     // Parse sector trailer data
-    //     if (isSectorTrailer) {
-    //         c1 = buffer[7] >> 4;
-    //         c2 = buffer[8] & 0xF;
-    //         c3 = buffer[8] >> 4;
-    //         c1_ = buffer[6] & 0xF;
-    //         c2_ = buffer[6] >> 4;
-    //         c3_ = buffer[7] & 0xF;
-    //         invertedError = (c1 != (~c1_ & 0xF)) || (c2 != (~c2_ & 0xF)) || (c3 != (~c3_ & 0xF));
-    //         g[0] = ((c1 & 1) << 2) | ((c2 & 1) << 1) | ((c3 & 1) << 0);
-    //         g[1] = ((c1 & 2) << 1) | ((c2 & 2) << 0) | ((c3 & 2) >> 1);
-    //         g[2] = ((c1 & 4) << 0) | ((c2 & 4) >> 1) | ((c3 & 4) >> 2);
-    //         g[3] = ((c1 & 8) >> 1) | ((c2 & 8) >> 2) | ((c3 & 8) >> 3);
-    //         isSectorTrailer = false;
-    //     }
-
-    //     // Which access group is this block in?
-    //     if (no_of_blocks == 4) {
-    //         group = blockOffset;
-    //         firstInGroup = true;
-    //     }
-    //     else {
-    //         group = blockOffset / 5;
-    //         firstInGroup = (group == 3) || (group != (blockOffset + 1) / 5);
-    //     }
-
-    //     if (firstInGroup) {
-    //         // Print access bits
-    //         printf(" [ ");
-
-    //         acces_bit = (g[group] >> 2) & 1;
-    //         sprintf(string, "%u", acces_bit);
-    //         printf(string);
-    //         printf(" ");
-
-    //         acces_bit = (g[group] >> 1) & 1;
-    //         sprintf(string, "%u", acces_bit);
-    //         printf(string);
-    //         printf(" ");
-
-    //         acces_bit = (g[group] >> 0) & 1;
-    //         sprintf(string, "%u", acces_bit);
-    //         printf(string);
-
-    //         printf(" ] ");
-    //         if (invertedError) {
-    //             printf(" Inverted access bits did not match! ");
-    //         }
-    //     }
-
-    //     if (group != 3 && (g[group] == 1 || g[group] == 6)) {  // Not a sector trailer, a value block
-    //         long value = ((long) (buffer[3]) << 24) | ((long) (buffer[2]) << 16) | ((long) (buffer[1]) << 8) |
-    //                      (long) (buffer[0]);
-    //         printf(" Value=0x");
-
-    //         // print the hexa value of a unsigned char
-    //         sprintf(string, "%02X", (char) value);
-    //         printf(string);
-    //         printf(" Adr=0x");
-
-    //         // print the hexa value of a unsigned char
-    //         sprintf(string, "%02X", (char) buffer[12]);
-    //         printf(string);
-    //     }
-    //     printf("\r\n");
-    // }
-
-    return;
-}  // End PICC_DumpMifareClassicSectorToSerial()
-
-/**
- * Dumps memory contents of a MIFARE Ultralight PICC.
- */
-void PICC_DumpMifareUltralightToSerial(MFRC522Ptr_t mfrc) {
-    // char string[2];
-    // StatusCode status;
-    // uint8_t uint8_tCount;
-    // uint8_t buffer[18];
-    // uint8_t i;
-
-    // printf("Page  0  1  2  3\r\n");
-    // // Try the mpages of the original Ultralight. Ultralight C has more pages.
-    // for (uint8_t page = 0; page < 16; page += 4) {  // Read returns data for 4 pages at a time.
-    //     // Read pages
-    //     uint8_tCount = sizeof(buffer);
-    //     status = MIFARE_Read(mfrc, page, buffer, &uint8_tCount);
-    //     if (status != STATUS_OK) {
-    //         printf("MIFARE_Read() failed: ");
-    //         printf(GetStatusCodeName(status));
-    //         break;
-    //     }
-    //     // Dump data
-    //     for (uint8_t offset = 0; offset < 4; offset++) {
-    //         i = page + offset;
-    //         if (i < 10)
-    //             printf("  ");  // Pad with spaces
-    //         else
-    //             printf(" ");  // Pad with spaces
-    //         sprintf(string, "%u", i);
-    //         printf(string);
-    //         printf("  ");
-    //         for (uint8_t index = 0; index < 4; index++) {
-    //             i = 4 * offset + index;
-    //             if (buffer[i] < 0x10)
-    //                 printf(" 0");
-    //             else
-    //                 printf(" ");
-
-    //             // print the hexa value of a unsigned char
-    //             sprintf(string, "%02X", (char) buffer[i]);
-    //             printf(string);
-    //         }
-    //         printf("\r\n");
-    //     }
-    // }
-}  // End PICC_DumpMifareUltralightToSerial()
 
 /**
  * Calculates the bit pattern needed for the specified access bits. In the [C1
