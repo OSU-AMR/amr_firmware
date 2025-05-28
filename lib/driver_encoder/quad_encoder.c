@@ -8,8 +8,8 @@
 
 #define QUADRATURE_SCALE 4
 
-uint enc_cnt = 0;
-encoder **encoders;
+static uint enc_cnt = 0;
+static encoder **encoders;
 
 static void pulse_callback(uint gpio, uint32_t events) {
     encoder *curr_enc = NULL;
