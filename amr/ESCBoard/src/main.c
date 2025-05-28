@@ -1,3 +1,4 @@
+#include "controller.h"
 #include "core1.h"
 #include "ros.h"
 #include "safety_interface.h"
@@ -162,9 +163,7 @@ int main() {
     // led_init();
     micro_ros_init_error_handling();
     // TODO: Put any additional hardware initialization code here
-    core1_init();
-    float target_rps_init = 0.0f;
-    core1_update_target_rpm(&target_rps_init);
+    controller_init();
 
 // Initialize ROS Transports
 // TODO: If a transport won't be needed for your specific build (like it's lacking the proper port), you can remove it

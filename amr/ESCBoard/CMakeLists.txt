@@ -54,5 +54,6 @@ target_link_libraries(template_project PUBLIC
 
     # TODO: Add any additional hardware here (ex. hardware_adc)
     driver_drv8313
+    driver_encoder
 )
 
