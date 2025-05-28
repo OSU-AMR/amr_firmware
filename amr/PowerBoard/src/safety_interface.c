@@ -112,7 +112,10 @@ void safety_interface_deinit(void) {
 // ========================================
 
 // Define the kill switch variables used by core safety
-struct kill_switch_state kill_switch_states[NUM_KILL_SWITCHES];
+// These are pulled from the riptide msg definitions
+struct kill_switch_state kill_switch_states[riptide_msgs2__msg__KillSwitchReport__NUM_KILL_SWITCHES] = {
+    [0 ... riptide_msgs2__msg__KillSwitchReport__NUM_KILL_SWITCHES - 1] = { .enabled = false }
+};
 const int num_kill_switches = sizeof(kill_switch_states) / sizeof(*kill_switch_states);
 static_assert(sizeof(kill_switch_states) / sizeof(*kill_switch_states) <= 32, "Too many kill switches defined");
 

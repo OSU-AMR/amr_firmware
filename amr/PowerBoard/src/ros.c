@@ -147,7 +147,7 @@ rcl_ret_t ros_update_firmware_status(uint8_t client_id) {
     status_msg.kill_switches_needs_update = 0;
     status_msg.kill_switches_timed_out = 0;
 
-    for (int i = 0; i < NUM_KILL_SWITCHES; i++) {
+    for (int i = 0; i < riptide_msgs2__msg__KillSwitchReport__NUM_KILL_SWITCHES; i++) {
         if (kill_switch_states[i].enabled) {
             status_msg.kill_switches_enabled |= (1 << i);
         }
