@@ -41,6 +41,7 @@ absolute_time_t next_rfid_read = { 0 };
 
 MFRC522Ptr_t mfrc;
 bool rfid_ready = false;
+uint8_t last_tag[MAX_UID_SIZE];
 
 /**
  * @brief Check if a timer is ready. If so advance it to the next interval.
@@ -126,6 +127,15 @@ static void tick_ros_tasks() {
     }
 }
 
+bool arrs_equal(uint8_t arr1[], uint8_t arr2[], uint8_t len) {
+    for (int i = 0; i < len; i++) {
+        if (arr1[i] != arr2[i])
+            return false;
+    }
+
+    return true;
+}
+
 static void tick_background_tasks() {
 #if MICRO_ROS_TRANSPORT_CAN
     // Tick canbus heartbeat/control interface
@@ -152,12 +162,15 @@ static void tick_background_tasks() {
     }
 #endif
 
-    // TODO: Put any code that should periodically occur here
-
     // Use short circuit eval to only check the RFID periodically since polling it takes 25 ms
     if (timer_ready(&next_rfid_read, RFID_POLL_PERIOD_MS, true) && PICC_IsNewCardPresent(mfrc)) {
         PICC_ReadCardSerial(mfrc);
-        rfid_ready = true;
+
+        // Only publish if the tag is different from the last one seen
+        if (arrs_equal(mfrc->uid.uidByte, last_tag, MAX_UID_SIZE)) {
+            memcpy(last_tag, mfrc->uid.uidByte, MAX_UID_SIZE);  // We have a new tag, so copy it in for later
+            rfid_ready = true;
+        }
     }
 }
 

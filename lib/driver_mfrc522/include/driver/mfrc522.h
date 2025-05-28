@@ -264,10 +264,12 @@ typedef enum _StatusCode {
     STATUS_MIFARE_NACK = 0xff  // A MIFARE PICC responded with NAK.
 } StatusCode;
 
+#define MAX_UID_SIZE 10
+
 // A struct used for passing the UID of a PICC.
 typedef struct {
     uint8_t size;  // Number of bytes in the UID. 4, 7 or 10.
-    uint8_t uidByte[10];
+    uint8_t uidByte[MAX_UID_SIZE];
     uint8_t sak;  // The SAK (Select acknowledge) byte returned from the PICC
                   // after successful selection.
 } Uid;

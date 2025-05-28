@@ -1,6 +1,5 @@
 #include "ros.h"
 
-#include "driver/mfrc522.h"
 #include "pico/stdlib.h"
 #include "titan/logger.h"
 #include "titan/version.h"
@@ -133,25 +132,13 @@ rcl_ret_t ros_heartbeat_pulse(uint8_t client_id) {
 
 // TODO: Add in node specific tasks here
 
-bool arrs_equal(uint8_t arr1[], uint8_t arr2[], uint8_t len) {
-    for (int i = 0; i < len; i++) {
-        if (arr1[i] != arr2[i])
-            return false;
-    }
-
-    return true;
-}
-
 rcl_ret_t ros_publish_rfid(uint8_t bytes[], uint8_t size) {
-    if (arrs_equal(bytes, last_tag, MAX_UID_SIZE))
-        return RCL_RET_OK;
-    memcpy(last_tag, bytes, MAX_UID_SIZE);  // We have a new tag, so copy it in for later
-
     std_msgs__msg__String rfid_msg;
     const uint16_t str_size = 2 * size;
 
     char tag_code[str_size];
     for (uint8_t i = 0; i < size; i++) {
+        // Pad each hex-coded byte to two characters
         sprintf(&tag_code[2 * i], "%02hhx", bytes[i]);
     }
 
