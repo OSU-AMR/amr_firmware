@@ -29,6 +29,7 @@
 #define HEARTBEAT_TIME_MS 100
 #define FIRMWARE_STATUS_TIME_MS 1000
 #define LED_UPTIME_INTERVAL_MS 250
+#define CONTROLLER_PERIOD_MS 10
 
 // Initialize all to nil time
 // For background timers, they will fire immediately
@@ -37,6 +38,7 @@ absolute_time_t next_heartbeat = { 0 };
 absolute_time_t next_status_update = { 0 };
 absolute_time_t next_led_update = { 0 };
 absolute_time_t next_connect_ping = { 0 };
+absolute_time_t next_controller_update = { 0 };
 
 /**
  * @brief Check if a timer is ready. If so advance it to the next interval.
@@ -144,7 +146,10 @@ static void tick_background_tasks() {
     }
 #endif
 
-    // TODO: Put any code that should periodically occur here
+    // Probably make this a non-critical timer later
+    if (timer_ready(&next_controller_update, CONTROLLER_PERIOD_MS, false)) {
+        controller_tick();
+    }
 }
 
 int main() {
@@ -164,6 +169,9 @@ int main() {
     micro_ros_init_error_handling();
     // TODO: Put any additional hardware initialization code here
     controller_init();
+
+    gpio_init(1);
+    gpio_set_dir(1, GPIO_OUT);
 
 // Initialize ROS Transports
 // TODO: If a transport won't be needed for your specific build (like it's lacking the proper port), you can remove it
@@ -186,6 +194,8 @@ int main() {
 #ifdef MICRO_ROS_TRANSPORT_USB
     transport_usb_init();
 #endif
+
+    bool val = false;
 
     // Enter main loop
     // This is split into two sections of timers
@@ -235,6 +245,9 @@ int main() {
                 next_connect_ping = make_timeout_time_ms(UROS_CONNECT_PING_TIME_MS);
             }
         }
+
+        gpio_put(1, val);
+        val = !val;
 
         // Tick safety
         safety_tick();

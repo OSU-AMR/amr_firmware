@@ -5,6 +5,7 @@
 #include "driver/quad_encoder.h"
 
 #include <math.h>
+#include <memory.h>
 
 // Hardware parameters
 #define ENCODER_TPR 2048
@@ -18,19 +19,24 @@
 encoder encoders[NUM_MOTORS];
 
 // Internal state
-float vel_avg[2];
+float vel_avg[NUM_MOTORS];
 
 uint32_t previous_loop_time;
 
-float target_velocity[2];
-float voltage_limit[2];
+float target_velocity[NUM_MOTORS];
+float voltage_limit[NUM_MOTORS];
 
 void controller_init() {
     core1_init();
 
     encoder_init(&encoders[0], ENC0_A_PIN, ENC0_B_PIN, ENCODER_TPR);
     encoder_init(&encoders[1], ENC1_A_PIN, ENC1_B_PIN, ENCODER_TPR);
+
+    gpio_init(2);
+    gpio_set_dir(2, GPIO_OUT);
 }
+
+bool val = false;
 
 void controller_tick() {
     // Do this math as a separate loop since the timing here is somewhat important
@@ -61,14 +67,23 @@ void controller_tick() {
         }
 
         // Enforce max voltage limit
-        voltage_limit[i] = MIN(voltage_limit[i], DRIVER_VOLTAGE_SUPPLY);
+        voltage_limit[i] = MIN(voltage_limit[i], fixedpt_tofloat(DRIVER_VOLTAGE_SUPPLY_FIXEDPT));
 
         // Send motor commands (under spin lock)
-        core1_update_targets(target_velocity, voltage_limit);
+        fixedpt target_velocity_fixed = fixedpt_rconst(*target_velocity);
+        fixedpt voltage_limit_fixed = fixedpt_rconst(*voltage_limit);
+
+        core1_update_targets(&target_velocity_fixed, &voltage_limit_fixed);
     }
+
+    gpio_put(2, val);
+    val = !val;
 }
 
-void controller_set_target(float left_rps, float right_rps) {
-    target_velocity[0] = left_rps;
-    target_velocity[1] = right_rps;
+void controller_set_target(const float *rps) {
+    memcpy(target_velocity, rps, NUM_MOTORS);
+    // fixedpt vlim = 0;
+    // fixedpt rps_fixed = fixedpt_rconst(*rps);
+
+    // core1_update_targets(&rps_fixed, &vlim);
 }

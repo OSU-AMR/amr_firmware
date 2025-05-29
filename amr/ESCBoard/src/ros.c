@@ -1,6 +1,6 @@
 #include "ros.h"
 
-#include "core1.h"
+#include "controller.h"
 
 #include "pico/stdlib.h"
 #include "titan/logger.h"
@@ -61,7 +61,7 @@ static void killswitch_subscription_callback(const void *msgin) {
 
 static void power_subscription_callback(const void *msgin) {
     const std_msgs__msg__Float32 *msg = (const std_msgs__msg__Float32 *) msgin;
-    // core1_update_target_rps(&msg->data);
+    controller_set_target(&msg->data);
 }
 
 // TODO: Add in node specific tasks here
