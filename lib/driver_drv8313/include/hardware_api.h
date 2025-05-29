@@ -26,7 +26,7 @@
 typedef struct GenericDriverParams {
     int pins[6];
     long pwm_frequency;
-    float dead_zone;
+    fixedpt dead_zone;
 } GenericDriverParams;
 
 /**
@@ -53,6 +53,6 @@ void *_configure3PWM(long pwm_frequency, const int pinA, const int pinB, const i
  * @param dc_c  duty cycle phase C [0, 1]
  * @param params  the driver parameters
  */
-void _writeDutyCycle3PWM(float dc_a, float dc_b, float dc_c, void *params);
+void _writeDutyCycle3PWM(fixedpt dc_a, fixedpt dc_b, fixedpt dc_c, void *params);
 
 #endif

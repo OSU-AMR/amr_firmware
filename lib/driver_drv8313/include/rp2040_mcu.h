@@ -1,4 +1,6 @@
 #pragma once
+#include "fixedptc.h"
+
 #include "hardware/pwm.h"
 
 typedef struct RP2040DriverParams {
@@ -6,5 +8,5 @@ typedef struct RP2040DriverParams {
     uint slice[6];
     uint chan[6];
     long pwm_frequency;
-    float dead_zone;
+    fixedpt dead_zone;
 } RP2040DriverParams;

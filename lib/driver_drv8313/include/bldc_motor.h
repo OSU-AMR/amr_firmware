@@ -1,15 +1,8 @@
 #ifndef BLDCMotor_h
 #define BLDCMotor_h
 
-// #include "Arduino.h"
-// #include "common/base_classes/BLDCDriver.h"
-// #include "common/base_classes/FOCDriver.h"
-// #include "common/base_classes/FOCMotor.h"
-// #include "common/base_classes/Sensor.h"
-// #include "common/defaults.h"
-// #include "common/foc_utils.h"
-// #include "common/time_utils.h"
 #include "bldc_driver_3pwm.h"
+#include "fixedptc.h"
 
 // monitoring bitmap
 #define _MON_TARGET 0b1000000  // monitor target value
@@ -63,24 +56,24 @@ typedef enum FOCMotorStatus {
 
 // dq current structure
 typedef struct DQCurrent {
-    float d;
-    float q;
+    fixedpt d;
+    fixedpt q;
 } DQCurrent_s;
 // phase current structure
 typedef struct PhaseCurrent {
-    float a;
-    float b;
-    float c;
+    fixedpt a;
+    fixedpt b;
+    fixedpt c;
 } PhaseCurrent_s;
 // dq voltage structs
 typedef struct DQVoltage {
-    float d;
-    float q;
+    fixedpt d;
+    fixedpt q;
 } DQVoltage_s;
 // alpha beta current structure
 typedef struct ABCurrent {
-    float alpha;
-    float beta;
+    fixedpt alpha;
+    fixedpt beta;
 } ABCurrent_s;
 
 typedef enum Direction {
@@ -98,36 +91,36 @@ typedef struct BLDCMotor {
     BLDCDRIVER3PWM_t *driver;
     // open loop variables
     long open_loop_timestamp;
-    float Ua, Ub, Uc;  //!< Current phase voltages Ua,Ub and Uc set to motor
+    fixedpt Ua, Ub, Uc;  //!< Current phase voltages Ua,Ub and Uc set to motor
 
     // state variables
-    float target;                 //!< current target value - depends of the controller
-    float feed_forward_velocity;  //!< current feed forward velocity
-    float shaft_angle;            //!< current motor angle
-    float electrical_angle;       //!< current electrical angle
-    float shaft_velocity;         //!< current motor velocity
-    float current_sp;             //!< target current ( q current )
-    float shaft_velocity_sp;      //!< current target velocity
-    float shaft_angle_sp;         //!< current target angle
-    DQVoltage_s voltage;          //!< current d and q voltage set to the motor
-    DQCurrent_s current;          //!< current d and q current measured
-    float voltage_bemf;           //!< estimated backemf voltage (if provided KV constant)
-    float Ualpha, Ubeta;          //!< Phase voltages U alpha and U beta used for inverse Park and Clarke transform
+    fixedpt target;                 //!< current target value - depends of the controller
+    fixedpt feed_forward_velocity;  //!< current feed forward velocity
+    fixedpt shaft_angle;            //!< current motor angle
+    fixedpt electrical_angle;       //!< current electrical angle
+    fixedpt shaft_velocity;         //!< current motor velocity
+    fixedpt current_sp;             //!< target current ( q current )
+    fixedpt shaft_velocity_sp;      //!< current target velocity
+    fixedpt shaft_angle_sp;         //!< current target angle
+    DQVoltage_s voltage;            //!< current d and q voltage set to the motor
+    DQCurrent_s current;            //!< current d and q current measured
+    fixedpt voltage_bemf;           //!< estimated backemf voltage (if provided KV constant)
+    fixedpt Ualpha, Ubeta;          //!< Phase voltages U alpha and U beta used for inverse Park and Clarke transform
 
     // motor configuration parameters
-    float voltage_sensor_align;   //!< sensor and motor align voltage parameter
-    float velocity_index_search;  //!< target velocity for index search
+    fixedpt voltage_sensor_align;   //!< sensor and motor align voltage parameter
+    fixedpt velocity_index_search;  //!< target velocity for index search
 
     // motor physical parameters
-    float phase_resistance;  //!< motor phase resistance
-    int pole_pairs;          //!< motor pole pairs number
-    float KV_rating;         //!< motor KV rating
-    float phase_inductance;  //!< motor phase inductance
+    fixedpt phase_resistance;  //!< motor phase resistance
+    int pole_pairs;            //!< motor pole pairs number
+    fixedpt KV_rating;         //!< motor KV rating
+    fixedpt phase_inductance;  //!< motor phase inductance
 
     // limiting variables
-    float voltage_limit;   //!< Voltage limiting variable - global limit
-    float current_limit;   //!< Current limiting variable - global limit
-    float velocity_limit;  //!< Velocity limiting variable - global limit
+    fixedpt voltage_limit;   //!< Voltage limiting variable - global limit
+    fixedpt current_limit;   //!< Current limiting variable - global limit
+    fixedpt velocity_limit;  //!< Velocity limiting variable - global limit
 
     // motor status vairables
     int8_t enabled;                 //!< enabled or disabled motor flag
@@ -168,7 +161,7 @@ void motor_enable(BLDCMotor_t *motor);
  *
  * This function doesn't need to be run upon each loop execution - depends of the use case
  */
-void motor_move(BLDCMotor_t *motor, float target);
+void motor_move(BLDCMotor_t *motor, fixedpt target);
 
 /**
  * Method using FOC to set Uq to the motor at the optimal angle
@@ -178,7 +171,7 @@ void motor_move(BLDCMotor_t *motor, float target);
  * @param Ud Current voltage in d axis to set to the motor
  * @param angle_el current electrical angle of the motor
  */
-void motor_setPhaseVoltage(BLDCMotor_t *motor, float Uq, float Ud, float angle_el);
+void motor_setPhaseVoltage(BLDCMotor_t *motor, fixedpt Uq, fixedpt Ud, fixedpt angle_el);
 
 // Open loop motion control
 /**
@@ -187,6 +180,6 @@ void motor_setPhaseVoltage(BLDCMotor_t *motor, float Uq, float Ud, float angle_e
  *
  * @param target_velocity - rad/s
  */
-float motor_velocityOpenloop(BLDCMotor_t *motor, float target_velocity);
+fixedpt motor_velocityOpenloop(BLDCMotor_t *motor, fixedpt target_velocity);
 
 #endif
