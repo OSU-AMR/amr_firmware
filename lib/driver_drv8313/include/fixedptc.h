@@ -88,7 +88,8 @@ typedef __uint128_t fixedptud;
 #error "FIXEDPT_BITS must be equal to 32 or 64"
 #endif
 
-#define FIXEDPT_WBITS 8
+// This value is optimized to the exact number needed to run simpleFOC (max value of 2604)
+#define FIXEDPT_WBITS 13
 
 #ifndef FIXEDPT_WBITS
 #define FIXEDPT_WBITS 24

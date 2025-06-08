@@ -32,16 +32,16 @@ void make_BLDCMotor(BLDCMotor_t *motor, int pp) {
     motor->sensor_direction = UNKNOWN;
 
     // maximum angular velocity to be used for positioning
-    motor->velocity_limit = 20.0f;
+    motor->velocity_limit = fixedpt_rconst(20.0f);
     // maximum voltage to be set to the motor
-    motor->voltage_limit = 12.0f;
+    motor->voltage_limit = fixedpt_rconst(12.0f);
     // not set on the begining
-    motor->current_limit = 2.0f;
+    motor->current_limit = fixedpt_rconst(2.0f);
 
     // index search velocity
-    motor->velocity_index_search = 1.0f;
+    motor->velocity_index_search = fixedpt_rconst(1.0f);
     // sensor and motor align voltage
-    motor->voltage_sensor_align = 3.0f;
+    motor->voltage_sensor_align = fixedpt_rconst(3.0f);
 
     // default modulation is SinePWM
     motor->foc_modulation = SinePWM;
@@ -56,16 +56,16 @@ void make_BLDCMotor(BLDCMotor_t *motor, int pp) {
     motor->current.d = 0;
 
     // voltage bemf
-    motor->voltage_bemf = 0.0f;
+    motor->voltage_bemf = fixedpt_rconst(0.0f);
 
     // Initialize phase voltages U alpha and U beta used for inverse Park and Clarke transform
     motor->Ualpha = 0;
     motor->Ubeta = 0;
 
-    motor->shaft_angle = 0.0f;
+    motor->shaft_angle = fixedpt_rconst(0.0f);
 
     // New additions for C
-    motor->shaft_velocity_sp = 0.0f;
+    motor->shaft_velocity_sp = fixedpt_rconst(0.0f);
     motor->open_loop_timestamp = 0l;
 }
 
@@ -225,7 +225,6 @@ fixedpt motor_velocityOpenloop(BLDCMotor_t *motor, fixedpt target_velocity) {
 
     // calculate the necessary angle to achieve target velocity
     motor->shaft_angle = _normalizeAngle(motor->shaft_angle + fixedpt_mul(target_velocity, Ts));
-    // LOG_INFO("Got angle as %f", motor->shaft_angle);
 
     // for display purposes
     motor->shaft_velocity = target_velocity;
@@ -234,7 +233,7 @@ fixedpt motor_velocityOpenloop(BLDCMotor_t *motor, fixedpt target_velocity) {
     fixedpt Uq = motor->voltage_limit;
 
     // set the maximal allowed voltage (voltage_limit) with the necessary angle
-    motor_setPhaseVoltage(motor, Uq, 0, _electricalAngle(motor->shaft_angle, motor->pole_pairs));
+    motor_setPhaseVoltage(motor, Uq, 0, _electricalAngle(motor->shaft_angle, fixedpt_fromint(motor->pole_pairs)));
 
     // save timestamp for next call
     motor->open_loop_timestamp = now_us;

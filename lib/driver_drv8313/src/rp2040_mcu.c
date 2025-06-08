@@ -12,9 +12,6 @@
 #include "hardware/pwm.h"
 
 #include <stdlib.h>
-// #if defined(USE_ARDUINO_PINOUT)
-// #include <pinDefinitions.h>
-// #endif
 
 #define _PWM_FREQUENCY 24000
 #define _PWM_FREQUENCY_MAX 66000
@@ -27,11 +24,8 @@ uint16_t wrapvalues[NUM_PWM_SLICES];
 // TODO add checks which channels are already used...
 
 void setupPWM(int pin_nr, long pwm_frequency, bool invert, RP2040DriverParams *params, uint8_t index) {
-#if defined(USE_ARDUINO_PINOUT)
-    uint pin = (uint) digitalPinToPinName(pin_nr);  // we could check for -DBOARD_HAS_PIN_REMAP ?
-#else
     uint pin = (uint) pin_nr;
-#endif
+
     gpio_set_function(pin, GPIO_FUNC_PWM);
     uint slice = pwm_gpio_to_slice_num(pin);
     uint chan = pwm_gpio_to_channel(pin);

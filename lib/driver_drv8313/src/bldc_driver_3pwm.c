@@ -63,7 +63,7 @@ void driver_setPhaseState(BLDCDRIVER3PWM_t *driver, __unused PhaseState_t sa, __
     gpio_put(driver->enableA_pin, sa == PHASE_ON ? driver->enable_active_high : !driver->enable_active_high);
 }
 
-float _constrain(fixedpt val, fixedpt min, fixedpt max) {
+fixedpt _constrain(fixedpt val, fixedpt min, fixedpt max) {
     return MIN(MAX(val, min), max);
 }
 
@@ -75,9 +75,9 @@ void driver_setPwm(BLDCDRIVER3PWM_t *driver, fixedpt Ua, fixedpt Ub, fixedpt Uc)
     Uc = _constrain(Uc, 0, driver->voltage_limit);
     // calculate duty cycle
     // limited in [0,1]
-    driver->dc_a = _constrain(Ua / driver->voltage_power_supply, 0, 1);
-    driver->dc_b = _constrain(Ub / driver->voltage_power_supply, 0, 1);
-    driver->dc_c = _constrain(Uc / driver->voltage_power_supply, 0, 1);
+    driver->dc_a = _constrain(fixedpt_div(Ua, driver->voltage_power_supply), 0, fixedpt_fromint(1));
+    driver->dc_b = _constrain(fixedpt_div(Ub, driver->voltage_power_supply), 0, fixedpt_fromint(1));
+    driver->dc_c = _constrain(fixedpt_div(Uc, driver->voltage_power_supply), 0, fixedpt_fromint(1));
 
     // hardware specific writing
     // hardware specific function - depending on driver and mcu
