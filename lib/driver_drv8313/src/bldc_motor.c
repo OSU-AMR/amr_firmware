@@ -9,9 +9,9 @@
 
 #include <math.h>
 
-#define _SQRT3_2 0.86602540378f
-#define _2PI 6.28318530718f
-#define _PI_2 1.57079632679f
+#define _SQRT3_2_FIXEDPT fixedpt_rconst(0.86602540378f)
+#define _2PI_FIXEDPT fixedpt_rconst(6.28318530718f)
+#define _PI_2_FIXEDPT fixedpt_rconst(1.57079632679f)
 
 // BLDCMotor( int pp , float R)
 // - pp            - pole pair number
@@ -178,8 +178,8 @@ void motor_setPhaseVoltage(BLDCMotor_t *motor, fixedpt Uq, fixedpt Ud, fixedpt a
     // motor->Uc = -0.5f * motor->Ualpha - _SQRT3_2 * motor->Ubeta;
 
     motor->Ua = motor->Ualpha;
-    motor->Ub = fixedpt_mul(fixedpt_rconst(-0.5f), motor->Ualpha) + fixedpt_mul(fixedpt_rconst(_SQRT3_2), motor->Ubeta);
-    motor->Uc = fixedpt_mul(fixedpt_rconst(-0.5f), motor->Ualpha) - fixedpt_mul(fixedpt_rconst(_SQRT3_2), motor->Ubeta);
+    motor->Ub = fixedpt_mul(fixedpt_rconst(-0.5f), motor->Ualpha) + fixedpt_mul(_SQRT3_2_FIXEDPT, motor->Ubeta);
+    motor->Uc = fixedpt_mul(fixedpt_rconst(-0.5f), motor->Ualpha) - fixedpt_mul(_SQRT3_2_FIXEDPT, motor->Ubeta);
 
     // center = motor->driver->voltage_limit / 2;
 
@@ -203,8 +203,8 @@ void motor_setPhaseVoltage(BLDCMotor_t *motor, fixedpt Uq, fixedpt Ud, fixedpt a
 
 // normalizing radian angle to [0,2PI]
 fixedpt _normalizeAngle(fixedpt angle) {
-    fixedpt a = angle % fixedpt_rconst(_2PI);
-    return a >= 0 ? a : (a + fixedpt_rconst(_2PI));
+    fixedpt a = angle % _2PI_FIXEDPT;
+    return a >= 0 ? a : (a + _2PI_FIXEDPT);
 }
 
 fixedpt _electricalAngle(fixedpt shaft_angle, fixedpt pole_pairs) {
