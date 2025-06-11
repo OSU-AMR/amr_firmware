@@ -218,7 +218,8 @@ fixedpt motor_velocityOpenloop(BLDCMotor_t *motor, fixedpt target_velocity) {
     // get current timestamp
     unsigned long now_us = to_us_since_boot(get_absolute_time());
     // calculate the sample time from last call
-    fixedpt Ts = fixedpt_mul(fixedpt_fromint(now_us - motor->open_loop_timestamp), fixedpt_rconst(1e-6f));
+    fixedpt Ts = fixedpt_rconst((now_us - motor->open_loop_timestamp) * 1e-6f);
+
     // quick fix for strange cases (micros overflow + timestamp not defined)
     if (Ts <= 0 || Ts > fixedpt_rconst(0.5f))
         Ts = fixedpt_rconst(1e-3f);
