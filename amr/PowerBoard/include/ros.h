@@ -94,7 +94,10 @@ rcl_ret_t ros_update_firmware_status(uint8_t client_id);
 
 rcl_ret_t ros_publish_rfid(uint8_t bytes[], uint8_t size);
 
-#undef MICRO_ROS_TRANSPORT_CAN
-#define MICRO_ROS_TRANSPORT_USB 1
+// #undef MICRO_ROS_TRANSPORT_CAN
+// #define MICRO_ROS_TRANSPORT_USB 1
+
+#undef MICRO_ROS_TRANSPORT_USB
+#define MICRO_ROS_TRANSPORT_CAN 1
 
 #endif

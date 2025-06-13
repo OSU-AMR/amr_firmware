@@ -179,8 +179,8 @@ int main() {
     // TODO: Put any additional hardware initialization code here
 
     // Init RFID
-    mfrc = MFRC522_Init(17);
-    PCD_Init(mfrc, pio0, 16, 19, 18, 17);
+    mfrc = MFRC522_Init(RFID_CS_PIN);
+    PCD_Init(mfrc, pio0, RFID_MISO_PIN, RFID_MOSI_PIN, RFID_CLK_PIN, RFID_CS_PIN);
     // Don't start polling the RFID right away or we'll miss a timer on startup
     next_rfid_read = make_timeout_time_ms(RFID_POLL_PERIOD_MS);
 
