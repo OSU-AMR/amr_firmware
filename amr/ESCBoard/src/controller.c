@@ -3,6 +3,7 @@
 #include "core1.h"
 
 #include "driver/quad_encoder.h"
+#include "titan/logger.h"
 
 #include <math.h>
 #include <memory.h>
@@ -30,10 +31,7 @@ void controller_init() {
     core1_init();
 
     encoder_init(&encoders[0], ENC0_A_PIN, ENC0_B_PIN, ENCODER_TPR);
-    encoder_init(&encoders[1], ENC1_A_PIN, ENC1_B_PIN, ENCODER_TPR);
-
-    gpio_init(2);
-    gpio_set_dir(2, GPIO_OUT);
+    // encoder_init(&encoders[1], ENC1_A_PIN, ENC1_B_PIN, ENCODER_TPR);
 }
 
 bool val = false;
@@ -68,22 +66,23 @@ void controller_tick() {
 
         // Enforce max voltage limit
         voltage_limit[i] = MIN(voltage_limit[i], fixedpt_tofloat(DRIVER_VOLTAGE_SUPPLY_FIXEDPT));
-
-        // Send motor commands (under spin lock)
-        fixedpt target_velocity_fixed = fixedpt_rconst(*target_velocity);
-        fixedpt voltage_limit_fixed = fixedpt_rconst(*voltage_limit);
-
-        core1_update_targets(&target_velocity_fixed, &voltage_limit_fixed);
     }
 
-    gpio_put(2, val);
-    val = !val;
+    fixedpt target_velocity_fixed = fixedpt_rconst(target_velocity[0]);
+    fixedpt voltage_limit_fixed = fixedpt_rconst(voltage_limit[0]);
+
+    // Send motor commands (under spin lock)
+    // core1_update_targets(&target_velocity_fixed, &voltage_limit_fixed);
 }
 
 void controller_set_target(const float *rps) {
-    memcpy(target_velocity, rps, NUM_MOTORS);
-    // fixedpt vlim = 0;
-    // fixedpt rps_fixed = fixedpt_rconst(*rps);
+    // memcpy(target_velocity, rps, sizeof(*target_velocity) * NUM_MOTORS);
 
-    // core1_update_targets(&rps_fixed, &vlim);
+    // LOG_INFO("Set RPS as %f", *rps);
+    // LOG_INFO("Reading rps as %f", target_velocity[0]);
+
+    fixedpt vlim = 0;
+    fixedpt rps_fixed[2] = { fixedpt_rconst(rps[0]), fixedpt_rconst(rps[1]) };
+
+    core1_update_targets(&rps_fixed, &vlim);
 }

@@ -3,8 +3,10 @@
 #include "ros.h"
 #include "safety_interface.h"
 
+#include "canmore/protocol.h"
 #include "driver/led.h"
 #include "pico/stdlib.h"
+#include "titan/debug.h"
 #include "titan/logger.h"
 #include "titan/version.h"
 
@@ -142,14 +144,84 @@ static void tick_background_tasks() {
     // Update the LED (so it can alternate between colors if a fault is present)
     // This is only required if CAN transport is disabled, as the led_network_online_set will update the LEDs for us
     if (timer_ready(&next_led_update, LED_UPTIME_INTERVAL_MS, false)) {
-        // led_update_pins();
+        led_update_pins();
     }
 #endif
 
     // Probably make this a non-critical timer later
-    if (timer_ready(&next_controller_update, CONTROLLER_PERIOD_MS, false)) {
-        controller_tick();
+    // if (timer_ready(&next_controller_update, CONTROLLER_PERIOD_MS, false)) {
+    //     controller_tick();
+    // }
+}
+
+float curr_cmd[2] = { 0.0f };
+bool curr_cmd_set = false;
+bool bad_packet_len = false;
+size_t packet_len;
+
+uint8_t cmd_buf[2][4] = { 0 };
+
+static void motor_cmd_callback(__unused uint32_t channel, uint8_t *buf, size_t len) {
+    // This needs to be copied before casting since buf might not be word aligned
+    // float motor_cmds[NUM_MOTORS];
+    float motor_cmds[2];
+
+    if (len != sizeof(motor_cmds)) {
+        LOG_DEBUG("Dropping invalid packet with length %d", len);
+        // bad_packet_len = true;
+        // packet_len = len;
+        return;
     }
+
+    for (size_t i = 0; i < NUM_MOTORS; i++) {
+        size_t idx = i * 4;
+
+        // TODO: uncurse this
+        int bits_rep = (buf[idx + 3] << 24) | (buf[idx + 2] << 16) | (buf[idx + 1] << 8) | (buf[idx]);
+        motor_cmds[i] = *(float *) &bits_rep;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        cmd_buf[0][i] = buf[i];
+    }
+
+    for (int i = 0; i < 4; i++) {
+        cmd_buf[1][i] = buf[i + 4];
+    }
+
+    curr_cmd[0] = motor_cmds[0];
+    curr_cmd[1] = motor_cmds[1];
+
+    // curr_cmd_set = true;
+
+    // for (size_t i = 0; i < NUM_MOTORS; i++) {
+    //     size_t idx = i * 2;
+    //     motor_cmds[i] = (buf[idx] << 8) | buf[idx];
+    // }
+    controller_set_target(motor_cmds);
+}
+
+static int get_motor_status_cb(__unused size_t argc, __unused const char *const *argv, FILE *fout) {
+    fprintf(fout, "Cmd: (%f, %f), is_set: %d, bad_len: %d, len: %d, size: %d\n", curr_cmd[0], curr_cmd[1], curr_cmd_set,
+            bad_packet_len, packet_len, sizeof(float));
+
+    fprintf(fout, "Got the following raw packet(s):\n");
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 4; j++)
+            fprintf(fout, "\t%hhx\n", cmd_buf[i][j]);
+        fprintf(fout, "\n");
+    }
+
+    int test = (cmd_buf[1][3] << 24) | (cmd_buf[1][2] << 16) | (cmd_buf[1][1] << 8) | (cmd_buf[1][0]);
+    // int test = 81275981791;
+    float test_float = *(float *) &test;
+    memcpy(&test_float, &test, sizeof(int));
+
+    fprintf(fout, "Attempted to parse as an int: %u\n", test);
+
+    fprintf(fout, "Attempted to parse as a float: %f\n", test_float);
+
+    return 0;
 }
 
 int main() {
@@ -165,13 +237,13 @@ int main() {
     // Perform all initializations
     // NOTE: Safety must be the first thing up after stdio, so the watchdog will be enabled
     safety_setup();
-    // led_init();
+    led_init();
     micro_ros_init_error_handling();
     // TODO: Put any additional hardware initialization code here
+
     controller_init();
 
-    gpio_init(1);
-    gpio_set_dir(1, GPIO_OUT);
+    debug_remote_cmd_register("mget", "", "Output motor status data", get_motor_status_cb);
 
 // Initialize ROS Transports
 // TODO: If a transport won't be needed for your specific build (like it's lacking the proper port), you can remove it
@@ -184,6 +256,10 @@ int main() {
     }
 #endif
 
+    // Register callback for out of bands motor comms
+    // This must be done after CAN is successfully established
+    canbus_utility_frame_register_cb(CANMORE_CHAN_MOTOR_CMDS, &motor_cmd_callback);
+
 #ifdef MICRO_ROS_TRANSPORT_ETH
     if (!transport_eth_init()) {
         // No point in continuing onwards from here, if we can't initialize ETH hardware might as well panic and retry
@@ -194,8 +270,6 @@ int main() {
 #ifdef MICRO_ROS_TRANSPORT_USB
     transport_usb_init();
 #endif
-
-    bool val = false;
 
     // Enter main loop
     // This is split into two sections of timers
@@ -245,9 +319,6 @@ int main() {
                 next_connect_ping = make_timeout_time_ms(UROS_CONNECT_PING_TIME_MS);
             }
         }
-
-        gpio_put(1, val);
-        val = !val;
 
         // Tick safety
         safety_tick();

@@ -6,12 +6,11 @@
 #include "driver/drv8313.h"
 #include "hardware/gpio.h"
 #include "pico/multicore.h"
+#include "titan/logger.h"
 
 //
 // TODO: Prossible remove hardware gpio include
 //
-
-#define PICO_LED_PIN 25
 
 #define NUM_POLE_PAIRS 11
 #define MOTOR_VOLTAGE_LIMIT 3
@@ -55,11 +54,11 @@ static void motor_make(uint idx, uint p0_pin, uint p1_pin, uint p2_pin, uint en_
     make_BLDCDriver3PWM(&drivers[idx], p0_pin, p1_pin, p2_pin, en_pin);
 
     drivers[idx].voltage_power_supply = DRIVER_VOLTAGE_SUPPLY_FIXEDPT;
-    drivers[idx].voltage_limit = DRIVER_VOLTAGE_SUPPLY_FIXEDPT;
+    drivers[idx].voltage_limit = fixedpt_fromint(3);
     driver_init(&drivers[idx]);
     motors[idx].driver = &drivers[idx];  // Link driver
 
-    motors[idx].voltage_limit = DRIVER_VOLTAGE_SUPPLY_FIXEDPT;
+    motors[idx].voltage_limit = fixedpt_fromint(3);
     motors[idx].controller = velocity_openloop;
 
     motor_init(&motors[idx]);
@@ -71,20 +70,11 @@ static void volatile_copy(volatile fixedpt *dest, const volatile fixedpt *target
 }
 
 static void __time_critical_func(core1_main)() {
-    motor_make(0, 10, 11, 12, 13);
-    motor_make(1, 6, 7, 8, 9);
-
-    // sleep_ms(1000);
-
-    bool val = false;
+    motor_make(0, ESC0_1_PIN, ESC0_2_PIN, ESC0_3_PIN, MOTOR_ENABLE_PIN);
+    motor_make(1, ESC1_1_PIN, ESC1_2_PIN, ESC1_3_PIN, MOTOR_ENABLE_PIN);
 
     while (1) {
         safety_core1_checkin();
-
-        // gpio_put(PICO_LED_PIN, val);
-        gpio_put(0, val);
-        val = !val;
-        // sleep_ms(100);
 
         // This caching has to happen under lock
         uint32_t irq = spin_lock_blocking(target_req.lock);
@@ -95,7 +85,7 @@ static void __time_critical_func(core1_main)() {
         spin_unlock(target_req.lock, irq);
 
         for (int i = 0; i < NUM_MOTORS; i++) {
-            motors[i].voltage_limit = voltage_limit_cached[i];
+            // motors[i].voltage_limit = voltage_limit_cached[i];
             motor_move(&motors[i], target_rps_cached[i]);
         }
     }
@@ -104,13 +94,6 @@ static void __time_critical_func(core1_main)() {
 void core1_init() {
     target_req.lock = spin_lock_init(spin_lock_claim_unused(true));
     safety_launch_core1(core1_main);
-
-    // gpio_init(PICO_LED_PIN);
-    // gpio_put(PICO_LED_PIN, 0);
-    // gpio_set_dir(PICO_LED_PIN, GPIO_OUT);
-
-    gpio_init(0);
-    gpio_set_dir(0, GPIO_OUT);
 }
 
 void core1_update_targets(const fixedpt *rps, const fixedpt *voltage_limit) {
