@@ -1,5 +1,9 @@
 #include "driver/quad_encoder.h"
 
+#if CAN_MCP251XFD_USE_EXTERNAL_INTERRUPT_CB
+#include "driver/canbus.h"
+#endif
+
 #include "hardware/sync.h"
 
 #include <math.h>
@@ -12,6 +16,14 @@ static uint enc_cnt = 0;
 static encoder **encoders;
 
 static void pulse_callback(uint gpio, uint32_t events) {
+#if CAN_MCP251XFD_USE_EXTERNAL_INTERRUPT_CB
+    // Required since we're taking over the GPIO interrupt (and the SDK only supports 1 interrupt callback per core)
+    if (gpio == CAN_MCP251XFD_EXTERNAL_INTERRUPT_PIN) {
+        can_mcp251xfd_interrupt_cb(gpio, events);
+        return;
+    }
+#endif
+
     encoder *curr_enc = NULL;
 
     for (uint i = 0; i < enc_cnt; i++) {

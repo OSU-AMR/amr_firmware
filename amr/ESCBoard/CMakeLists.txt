@@ -31,6 +31,9 @@ add_executable(template_project
 )
 target_include_directories(template_project PUBLIC include)
 
+# Required so we can register our own gpio interrupt for the encoders (only one gpio interrupt supported)
+target_compile_definitions(template_project PUBLIC CAN_MCP251XFD_USE_EXTERNAL_INTERRUPT_CB=1)
+
 # Set version: major minor (see titan/version.h for more info)
 titan_generate_version_tag(template_project 1 0)
 
@@ -49,6 +52,7 @@ target_link_libraries(template_project PUBLIC
     driver_led      # Status LED support
     # TODO: Select your transport:
     micro_ros_usb   # Micro ros support (supports _can, _usb, _eth)
+    micro_ros_can
     titan_logger    # A nice little logging library
     titan_safety    # Handles critical code (Watchdog, Kill Switch, Fault Reporting)
 
