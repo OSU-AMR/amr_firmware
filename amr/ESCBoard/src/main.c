@@ -163,13 +163,10 @@ uint8_t cmd_buf[2][4] = { 0 };
 
 static void motor_cmd_callback(__unused uint32_t channel, uint8_t *buf, size_t len) {
     // This needs to be copied before casting since buf might not be word aligned
-    // float motor_cmds[NUM_MOTORS];
-    float motor_cmds[2];
+    float motor_cmds[NUM_MOTORS];
 
     if (len != sizeof(motor_cmds)) {
         LOG_DEBUG("Dropping invalid packet with length %d", len);
-        // bad_packet_len = true;
-        // packet_len = len;
         return;
     }
 
@@ -181,47 +178,7 @@ static void motor_cmd_callback(__unused uint32_t channel, uint8_t *buf, size_t l
         motor_cmds[i] = *(float *) &bits_rep;
     }
 
-    for (int i = 0; i < 4; i++) {
-        cmd_buf[0][i] = buf[i];
-    }
-
-    for (int i = 0; i < 4; i++) {
-        cmd_buf[1][i] = buf[i + 4];
-    }
-
-    curr_cmd[0] = motor_cmds[0];
-    curr_cmd[1] = motor_cmds[1];
-
-    // curr_cmd_set = true;
-
-    // for (size_t i = 0; i < NUM_MOTORS; i++) {
-    //     size_t idx = i * 2;
-    //     motor_cmds[i] = (buf[idx] << 8) | buf[idx];
-    // }
     controller_set_target(motor_cmds);
-}
-
-static int get_motor_status_cb(__unused size_t argc, __unused const char *const *argv, FILE *fout) {
-    fprintf(fout, "Cmd: (%f, %f), is_set: %d, bad_len: %d, len: %d, size: %d\n", curr_cmd[0], curr_cmd[1], curr_cmd_set,
-            bad_packet_len, packet_len, sizeof(float));
-
-    fprintf(fout, "Got the following raw packet(s):\n");
-    for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 4; j++)
-            fprintf(fout, "\t%hhx\n", cmd_buf[i][j]);
-        fprintf(fout, "\n");
-    }
-
-    int test = (cmd_buf[1][3] << 24) | (cmd_buf[1][2] << 16) | (cmd_buf[1][1] << 8) | (cmd_buf[1][0]);
-    // int test = 81275981791;
-    float test_float = *(float *) &test;
-    memcpy(&test_float, &test, sizeof(int));
-
-    fprintf(fout, "Attempted to parse as an int: %u\n", test);
-
-    fprintf(fout, "Attempted to parse as a float: %f\n", test_float);
-
-    return 0;
 }
 
 int main() {
@@ -242,8 +199,6 @@ int main() {
     // TODO: Put any additional hardware initialization code here
 
     controller_init();
-
-    debug_remote_cmd_register("mget", "", "Output motor status data", get_motor_status_cb);
 
 // Initialize ROS Transports
 // TODO: If a transport won't be needed for your specific build (like it's lacking the proper port), you can remove it

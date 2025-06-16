@@ -107,31 +107,3 @@ void core1_update_targets(const fixedpt *rps, const fixedpt *voltage_limit) {
     volatile_copy(target_req.voltage_limit, voltage_limit, NUM_MOTORS);
     spin_unlock(target_req.lock, irq);
 }
-
-// #include "core1.h"
-// #include "safety_interface.h"
-
-// #include "hardware/gpio.h"
-
-// //
-// // TODO: Prossible remove hardware gpio include
-// //
-
-// #define PICO_LED_PIN 25
-
-// static void __time_critical_func(core1_main)() {
-//     bool val = false;
-
-//     while (1) {
-//         safety_core1_checkin();
-
-//         gpio_put(PICO_LED_PIN, val);
-//         val = !val;
-
-//         sleep_ms(100);
-//     }
-// }
-
-// void core1_init() {
-//     safety_launch_core1(core1_main);
-// }
