@@ -30,9 +30,9 @@ pushd firmware/mcu_ws > /dev/null
     popd > /dev/null
 
     # Workaround: The software team enjoys pain.
-    git clone https://github.com/osu-uwrt/riptide_core
-    cp -R riptide_core/riptide_msgs ros2/riptide_msgs
-    rm -rf riptide_core
+    git clone https://github.com/OSU-AMR/amr_msgs
+    mv -f amr_msgs ros2/amr_msgs
+    # rm -rf riptide_core
 
 popd > /dev/null
 

@@ -5,6 +5,7 @@
 // #include "../common/defaults.h"
 // #include "../common/foc_utils.h"
 // #include "../common/time_utils.h"
+#include "fixedptc.h"
 #include "hardware_api.h"
 
 #include "hardware/gpio.h"
@@ -18,18 +19,18 @@ typedef struct BLDCDriver3PWM {
     int enableB_pin;  //!< enable pin number
     int enableC_pin;  //!< enable pin number
 
-    long pwm_frequency;          //!< pwm frequency value in hertz
-    float voltage_power_supply;  //!< power supply voltage
-    float voltage_limit;         //!< limiting voltage set to the motor
+    long pwm_frequency;            //!< pwm frequency value in hertz
+    fixedpt voltage_power_supply;  //!< power supply voltage
+    fixedpt voltage_limit;         //!< limiting voltage set to the motor
 
     bool initialized;  //!< true if driver was successfully initialized
     void *params;      //!< pointer to hardware specific parameters of driver
 
     bool enable_active_high;  //!< enable pin should be set to high to enable the driver (default is HIGH)
 
-    float dc_a;  //!< currently set duty cycle on phaseA
-    float dc_b;  //!< currently set duty cycle on phaseB
-    float dc_c;  //!< currently set duty cycle on phaseC
+    fixedpt dc_a;  //!< currently set duty cycle on phaseA
+    fixedpt dc_b;  //!< currently set duty cycle on phaseB
+    fixedpt dc_c;  //!< currently set duty cycle on phaseC
 
 } BLDCDRIVER3PWM_t;
 
@@ -67,7 +68,7 @@ void driver_enable(BLDCDRIVER3PWM_t *driver);
  * @param Ub - phase B voltage
  * @param Uc - phase C voltage
  */
-void driver_setPwm(BLDCDRIVER3PWM_t *driver, float Ua, float Ub, float Uc);
+void driver_setPwm(BLDCDRIVER3PWM_t *driver, fixedpt Ua, fixedpt Ub, fixedpt Uc);
 
 /**
  * Set phase voltages to the hardware

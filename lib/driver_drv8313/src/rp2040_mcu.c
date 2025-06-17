@@ -4,24 +4,14 @@
 
 #include "./rp2040_mcu.h"
 
-// #pragma message("")
-// #pragma message("SimpleFOC: compiling for RP2040")
-// #pragma message("")
-
-// #if !defined(SIMPLEFOC_DEBUG_RP2040)
-// #define SIMPLEFOC_DEBUG_RP2040
-// #endif
-
 #include "./hardware_api.h"
+#include "fixedptc.h"
 
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
 
 #include <stdlib.h>
-// #if defined(USE_ARDUINO_PINOUT)
-// #include <pinDefinitions.h>
-// #endif
 
 #define _PWM_FREQUENCY 24000
 #define _PWM_FREQUENCY_MAX 66000
@@ -34,11 +24,8 @@ uint16_t wrapvalues[NUM_PWM_SLICES];
 // TODO add checks which channels are already used...
 
 void setupPWM(int pin_nr, long pwm_frequency, bool invert, RP2040DriverParams *params, uint8_t index) {
-#if defined(USE_ARDUINO_PINOUT)
-    uint pin = (uint) digitalPinToPinName(pin_nr);  // we could check for -DBOARD_HAS_PIN_REMAP ?
-#else
     uint pin = (uint) pin_nr;
-#endif
+
     gpio_set_function(pin, GPIO_FUNC_PWM);
     uint slice = pwm_gpio_to_slice_num(pin);
     uint chan = pwm_gpio_to_channel(pin);
@@ -89,11 +76,11 @@ void *_configure3PWM(long pwm_frequency, const int pinA, const int pinB, const i
     return params;
 }
 
-void writeDutyCycle(float val, uint slice, uint chan) {
-    pwm_set_chan_level(slice, chan, (wrapvalues[slice] + 1) * val);
+void writeDutyCycle(fixedpt val, uint slice, uint chan) {
+    pwm_set_chan_level(slice, chan, fixedpt_toint(fixedpt_mul(fixedpt_fromint(wrapvalues[slice] + 1), val)));
 }
 
-void _writeDutyCycle3PWM(float dc_a, float dc_b, float dc_c, void *params) {
+void _writeDutyCycle3PWM(fixedpt dc_a, fixedpt dc_b, fixedpt dc_c, void *params) {
     writeDutyCycle(dc_a, ((RP2040DriverParams *) params)->slice[0], ((RP2040DriverParams *) params)->chan[0]);
     writeDutyCycle(dc_b, ((RP2040DriverParams *) params)->slice[1], ((RP2040DriverParams *) params)->chan[1]);
     writeDutyCycle(dc_c, ((RP2040DriverParams *) params)->slice[2], ((RP2040DriverParams *) params)->chan[2]);

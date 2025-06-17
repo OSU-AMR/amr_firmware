@@ -10,4 +10,5 @@ target_include_directories(driver_encoder INTERFACE
 
 target_link_libraries(driver_encoder INTERFACE
     hardware_sync
+    driver_canbus
 )

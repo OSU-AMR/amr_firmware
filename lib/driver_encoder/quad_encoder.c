@@ -1,5 +1,9 @@
 #include "driver/quad_encoder.h"
 
+#if CAN_MCP251XFD_USE_EXTERNAL_INTERRUPT_CB
+#include "driver/canbus.h"
+#endif
+
 #include "hardware/sync.h"
 
 #include <math.h>
@@ -8,22 +12,30 @@
 
 #define QUADRATURE_SCALE 4
 
-uint enc_cnt = 0;
-encoder **encoders;
+static uint enc_cnt = 0;
+static encoder **encoders;
 
 static void pulse_callback(uint gpio, uint32_t events) {
+#if CAN_MCP251XFD_USE_EXTERNAL_INTERRUPT_CB
+    // Required since we're taking over the GPIO interrupt (and the SDK only supports 1 interrupt callback per core)
+    if (gpio == CAN_MCP251XFD_EXTERNAL_INTERRUPT_PIN) {
+        can_mcp251xfd_interrupt_cb(gpio, events);
+        return;
+    }
+#endif
+
     encoder *curr_enc = NULL;
 
     for (uint i = 0; i < enc_cnt; i++) {
         curr_enc = encoders[i];
 
         if (gpio == curr_enc->PIN_A) {
-            curr_enc->pulse_counter += (curr_enc->a_state == curr_enc->b_state) ? 1 : -1;
+            curr_enc->pulse_counter += (curr_enc->a_state == curr_enc->b_state) ? 1 : -1 * curr_enc->inverted_mul;
             curr_enc->a_state = events & 8;
             break;
         }
         else if (gpio == curr_enc->PIN_B) {
-            curr_enc->pulse_counter += (curr_enc->a_state != curr_enc->b_state) ? 1 : -1;
+            curr_enc->pulse_counter += (curr_enc->a_state != curr_enc->b_state) ? 1 : -1 * curr_enc->inverted_mul;
             curr_enc->b_state = events & 8;
             break;
         }
@@ -94,7 +106,7 @@ float encoder_get_velocity(encoder *enc) {
     return velocity;
 }
 
-void encoder_init(encoder *enc, uint pin_a, uint pin_b, uint tpr) {
+void encoder_init(encoder *enc, uint pin_a, uint pin_b, uint tpr, bool inverted) {
     enc->PIN_A = pin_a;
     enc->PIN_B = pin_b;
     enc->cpr = tpr * QUADRATURE_SCALE;
@@ -106,6 +118,7 @@ void encoder_init(encoder *enc, uint pin_a, uint pin_b, uint tpr) {
     enc->prev_timestamp_us = 0;
     enc->prev_Th = 0.0f;
     enc->pulse_per_second = 0.0f;
+    enc->inverted_mul = inverted ? -1 : 1;
 
     gpio_init(pin_a);
     gpio_init(pin_b);
