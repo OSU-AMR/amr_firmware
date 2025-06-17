@@ -9,7 +9,8 @@
         "${workspaceFolder}/tools/upload_tool/",
         "${workspaceFolder}/tools/canmore_cli/",
         "${workspaceFolder}/SBCBoard",
-        "${workspaceFolder}/amr/ESCBoard/"
+        "${workspaceFolder}/amr/ESCBoard/",
+        "${workspaceFolder}/amr/PowerBoard"
     ],
     "cmake.configureOnOpen": true,
     "cmake.generator": "Unix Makefiles",
