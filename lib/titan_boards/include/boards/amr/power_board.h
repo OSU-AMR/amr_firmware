@@ -47,6 +47,11 @@
 #define LIDAR_RX_PIN 1
 #define LIDAR_ENABLE_PIN 2
 
+// Battery voltage sense (here probably temporarily)
+#define BATT_VOLT_MUX_NUM 1
+#define BATT_VOLT_R1 90.0f
+#define BATT_VOLT_R2 20.0f
+
 #ifndef PICO_DEFAULT_I2C
 #define PICO_DEFAULT_I2C IMU_I2C
 #endif
