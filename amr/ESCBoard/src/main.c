@@ -149,9 +149,9 @@ static void tick_background_tasks() {
 #endif
 
     // Probably make this a non-critical timer later
-    // if (timer_ready(&next_controller_update, CONTROLLER_PERIOD_MS, false)) {
-    //     controller_tick();
-    // }
+    if (timer_ready(&next_controller_update, CONTROLLER_PERIOD_MS, false)) {
+        controller_tick();
+    }
 }
 
 float curr_cmd[2] = { 0.0f };

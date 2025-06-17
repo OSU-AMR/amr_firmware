@@ -28,9 +28,6 @@
 #define FIRMWARE_STATUS_PUBLISHER_NAME "state/firmware"
 #define KILLSWITCH_SUBCRIBER_NAME "state/kill"
 
-// TEMP
-#define POWER_SUBSCRIBER_NAME "command/power"
-
 bool ros_connected = false;
 
 // Core Variables
@@ -47,9 +44,6 @@ rcl_subscription_t killswtich_subscriber;
 std_msgs__msg__Bool killswitch_msg;
 // TODO: Add node specific items here
 
-rcl_subscription_t power_subscriber;
-std_msgs__msg__Float32 power_msg;
-
 // ========================================
 // Executor Callbacks
 // ========================================
@@ -57,11 +51,6 @@ std_msgs__msg__Float32 power_msg;
 static void killswitch_subscription_callback(const void *msgin) {
     const std_msgs__msg__Bool *msg = (const std_msgs__msg__Bool *) msgin;
     safety_kill_switch_update(ROS_KILL_SWITCH, msg->data, true);
-}
-
-static void power_subscription_callback(const void *msgin) {
-    const std_msgs__msg__Float32 *msg = (const std_msgs__msg__Float32 *) msgin;
-    controller_set_target(&msg->data);
 }
 
 // TODO: Add in node specific tasks here
@@ -162,16 +151,11 @@ rcl_ret_t ros_init() {
     RCRETCHECK(rclc_subscription_init_best_effort(
         &killswtich_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool), KILLSWITCH_SUBCRIBER_NAME));
 
-    // RCRETCHECK(rclc_subscription_init_default(
-    //     &power_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32), POWER_SUBSCRIBER_NAME));
-
     // Executor Initialization
     const int executor_num_handles = 1;
     RCRETCHECK(rclc_executor_init(&executor, &support.context, executor_num_handles, &allocator));
     RCRETCHECK(rclc_executor_add_subscription(&executor, &killswtich_subscriber, &killswitch_msg,
                                               &killswitch_subscription_callback, ON_NEW_DATA));
-    // RCRETCHECK(rclc_executor_add_subscription(&executor, &power_subscriber, &power_msg, &power_subscription_callback,
-    //                                           ON_NEW_DATA));
 
     // TODO: Modify this method with node specific objects
 
@@ -191,7 +175,6 @@ void ros_fini(void) {
     // TODO: Modify to clean up anything you have opened in init here to avoid memory leaks
 
     RCSOFTCHECK(rcl_subscription_fini(&killswtich_subscriber, &node));
-    // RCSOFTCHECK(rcl_subscription_fini(&power_subscriber, &node));
     RCSOFTCHECK(rcl_publisher_fini(&heartbeat_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&firmware_status_publisher, &node))
     RCSOFTCHECK(rclc_executor_fini(&executor));
