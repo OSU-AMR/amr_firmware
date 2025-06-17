@@ -11,6 +11,7 @@
 // Hardware parameters
 #define ENCODER_TPR 2048
 
+// Voltage control parameters (new)
 #define KP_FIXEDPT fixedpt_rconst(0.5f)
 #define MINIMUM_DESIGN_VEL_FIXEDPT fixedpt_rconst(10.0f)
 #define FF_LINEAR_FIXEDPT fixedpt_rconst(1.0f / 20.0f)
@@ -20,6 +21,9 @@
 #define ENCODER_FILTER_GAIN_FIXEDPT fixedpt_rconst(.01)
 #define MAX_SPEED_FIXEDPT fixedpt_rconst(130.0)  // rad / sec
 #define STARTUP_VOLTAGE_BOOST_FIXEDPT fixedpt_rconst(5.0)
+
+// Interfacer parameters
+#define RPS_MIN_UPDATE_RATE_MS 500
 
 // Hardware
 encoder encoders[NUM_MOTORS];
@@ -31,6 +35,10 @@ fixedpt previous_loop_time;
 
 fixedpt target_velocity[NUM_MOTORS];
 fixedpt voltage_limit[NUM_MOTORS];
+
+absolute_time_t rps_expiration = { 0 };
+fixedpt stale_target_velocity[NUM_MOTORS] = { 0 };
+fixedpt stale_voltage_limit[NUM_MOTORS] = { 0 };
 
 void controller_init() {
     core1_init();
@@ -79,15 +87,20 @@ void controller_tick() {
     }
 
     // LOG_INFO("Got unclamped voltages as %f, %f", fixedpt_tofloat(voltage_limit[0]),
-    // fixedpt_tofloat(voltage_limit[1])); LOG_INFO("Got encoder vels as %f, %f", fixedpt_tofloat(vel_avg[0]),
-    // fixedpt_tofloat(vel_avg[1]));
+    // fixedpt_tofloat(voltage_limit[1]));
+    // LOG_INFO("Got encoder vels as %f, %f", fixedpt_tofloat(vel_avg[0]), fixedpt_tofloat(vel_avg[1]));
 
-    // Send motor commands (under spin lock)
-    core1_update_targets(target_velocity, voltage_limit);
+    // Send motor commands (under spin lock). Enforce rps command staling
+    bool rps_stale = time_reached(rps_expiration);
+    core1_update_targets(rps_stale ? stale_target_velocity : target_velocity,
+                         rps_stale ? stale_voltage_limit : voltage_limit);
 }
 
 void controller_set_target(const float *rps) {
     for (int i = 0; i < NUM_MOTORS; i++) {
         target_velocity[i] = fixedpt_rconst(rps[i]);
     }
+
+    // Set new timeout for command staling
+    rps_expiration = make_timeout_time_ms(RPS_MIN_UPDATE_RATE_MS);
 }

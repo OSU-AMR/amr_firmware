@@ -4,16 +4,10 @@
 #include "safety_interface.h"
 
 #include "driver/drv8313.h"
-#include "hardware/gpio.h"
 #include "pico/multicore.h"
 #include "titan/logger.h"
 
-//
-// TODO: Prossible remove hardware gpio include
-//
-
 #define NUM_POLE_PAIRS 11
-#define MOTOR_VOLTAGE_LIMIT 3
 
 /**
  * @brief Shared memory for sending commands from core 0 to core 1.
@@ -35,12 +29,6 @@ static volatile struct core1_cmd_shared_mem {
      * @brief The voltage limit for each motor. Computed by the internal controller
      */
     fixedpt voltage_limit[NUM_MOTORS];
-
-    /**
-     * @brief The time after which the target RPS command is considered stale, and the thrusters should be disabled.
-     * Prevents runaway robots.
-     */
-    absolute_time_t rps_expiration;
 } target_req = { 0 };
 
 // Declare these out here to not fill up the stack with them
@@ -77,12 +65,14 @@ static void __time_critical_func(core1_main)() {
         safety_core1_checkin();
 
         // This caching has to happen under lock
-        uint32_t irq = spin_lock_blocking(target_req.lock);
-        fixedpt target_rps_cached[NUM_MOTORS];
-        volatile_copy(target_rps_cached, target_req.rps, NUM_MOTORS);
-        fixedpt voltage_limit_cached[NUM_MOTORS];
-        volatile_copy(voltage_limit_cached, target_req.voltage_limit, NUM_MOTORS);
-        spin_unlock(target_req.lock, irq);
+        uint32_t irq = spin_lock_blocking(target_req.lock);                         //
+                                                                                    //
+        fixedpt target_rps_cached[NUM_MOTORS];                                      //
+        volatile_copy(target_rps_cached, target_req.rps, NUM_MOTORS);               //  SPIN LOCK
+        fixedpt voltage_limit_cached[NUM_MOTORS];                                   //
+        volatile_copy(voltage_limit_cached, target_req.voltage_limit, NUM_MOTORS);  //
+                                                                                    //
+        spin_unlock(target_req.lock, irq);                                          //
 
         for (int i = 0; i < NUM_MOTORS; i++) {
             motors[i].voltage_limit = voltage_limit_cached[i];
@@ -97,13 +87,11 @@ void core1_init() {
 }
 
 void core1_update_targets(const fixedpt *rps, const fixedpt *voltage_limit) {
-    // Compute expiration outside of spin lock to avoid unnecessary work in critical section.
-    // absolute_time_t expiration = make_timeout_time_ms(DSHOT_MIN_UPDATE_RATE_MS);
-
     // Update shared variables under lock
-    uint32_t irq = spin_lock_blocking(target_req.lock);
-    // target_req.rpm_expiration = expiration;
-    volatile_copy(target_req.rps, rps, NUM_MOTORS);
-    volatile_copy(target_req.voltage_limit, voltage_limit, NUM_MOTORS);
-    spin_unlock(target_req.lock, irq);
+    uint32_t irq = spin_lock_blocking(target_req.lock);                  //
+                                                                         //
+    volatile_copy(target_req.rps, rps, NUM_MOTORS);                      //  SPIN LOCK
+    volatile_copy(target_req.voltage_limit, voltage_limit, NUM_MOTORS);  //
+                                                                         //
+    spin_unlock(target_req.lock, irq);                                   //
 }
