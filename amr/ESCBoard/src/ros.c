@@ -1,6 +1,7 @@
 #include "ros.h"
 
 #include "controller.h"
+#include "ir.h"
 
 #include "pico/stdlib.h"
 #include "titan/logger.h"
@@ -15,6 +16,7 @@
 #include <std_msgs/msg/bool.h>
 #include <std_msgs/msg/float32.h>
 #include <std_msgs/msg/int8.h>
+#include <std_msgs/msg/u_int16.h>
 
 #undef LOGGING_UNIT_NAME
 #define LOGGING_UNIT_NAME "ros"
@@ -27,6 +29,9 @@
 #define HEARTBEAT_PUBLISHER_NAME "heartbeat"
 #define FIRMWARE_STATUS_PUBLISHER_NAME "state/firmware"
 #define KILLSWITCH_SUBCRIBER_NAME "state/kill"
+#define LEFT_IR_PUBLISHER_NAME "state/ir/left"
+#define RIGHT_IR_PUBLISHER_NAME "state/ir/right"
+#define BACK_IR_PUBLISHER_NAME "state/ir/back"
 
 bool ros_connected = false;
 
@@ -43,6 +48,9 @@ rcl_publisher_t firmware_status_publisher;
 rcl_subscription_t killswtich_subscriber;
 std_msgs__msg__Bool killswitch_msg;
 // TODO: Add node specific items here
+rcl_publisher_t left_ir_publisher;
+rcl_publisher_t right_ir_publisher;
+rcl_publisher_t back_ir_publisher;
 
 // ========================================
 // Executor Callbacks
@@ -128,6 +136,20 @@ rcl_ret_t ros_heartbeat_pulse(uint8_t client_id) {
     return RCL_RET_OK;
 }
 
+rcl_ret_t ros_publish_ir_sensors() {
+    std_msgs__msg__Int8 left_ir_msg, right_ir_msg, back_ir_msg;
+
+    left_ir_msg.data = ir_read(IR0_PIN);
+    right_ir_msg.data = ir_read(IR1_PIN);
+    back_ir_msg.data = ir_read(IR2_PIN);
+
+    RCSOFTRETCHECK(rcl_publish(&left_ir_publisher, &left_ir_msg, NULL));
+    RCSOFTRETCHECK(rcl_publish(&right_ir_publisher, &right_ir_msg, NULL));
+    RCSOFTRETCHECK(rcl_publish(&back_ir_publisher, &back_ir_msg, NULL));
+
+    return RCL_RET_OK;
+}
+
 // TODO: Add in node specific tasks here
 
 // ========================================
@@ -147,6 +169,15 @@ rcl_ret_t ros_init() {
     RCRETCHECK(rclc_publisher_init_default(&firmware_status_publisher, &node,
                                            ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, FirmwareStatus),
                                            FIRMWARE_STATUS_PUBLISHER_NAME));
+
+    RCRETCHECK(rclc_publisher_init_default(&left_ir_publisher, &node,
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16), LEFT_IR_PUBLISHER_NAME));
+
+    RCRETCHECK(rclc_publisher_init_default(
+        &right_ir_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16), RIGHT_IR_PUBLISHER_NAME));
+
+    RCRETCHECK(rclc_publisher_init_default(&back_ir_publisher, &node,
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16), BACK_IR_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_subscription_init_best_effort(
         &killswtich_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool), KILLSWITCH_SUBCRIBER_NAME));
@@ -176,7 +207,10 @@ void ros_fini(void) {
 
     RCSOFTCHECK(rcl_subscription_fini(&killswtich_subscriber, &node));
     RCSOFTCHECK(rcl_publisher_fini(&heartbeat_publisher, &node));
-    RCSOFTCHECK(rcl_publisher_fini(&firmware_status_publisher, &node))
+    RCSOFTCHECK(rcl_publisher_fini(&firmware_status_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&left_ir_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&right_ir_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&back_ir_publisher, &node));
     RCSOFTCHECK(rclc_executor_fini(&executor));
     RCSOFTCHECK(rcl_node_fini(&node));
     RCSOFTCHECK(rclc_support_fini(&support));

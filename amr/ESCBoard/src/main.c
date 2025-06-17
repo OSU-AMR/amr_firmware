@@ -1,5 +1,6 @@
 #include "controller.h"
 #include "core1.h"
+#include "ir.h"
 #include "ros.h"
 #include "safety_interface.h"
 
@@ -31,7 +32,8 @@
 #define HEARTBEAT_TIME_MS 100
 #define FIRMWARE_STATUS_TIME_MS 1000
 #define LED_UPTIME_INTERVAL_MS 250
-#define CONTROLLER_PERIOD_MS 10
+#define CONTROLLER_PERIOD_MS 10  // This frequency will cause us to miss some timer ticks, but that's ok for now
+#define IR_UPDATE_PERIOD_MS 100
 
 // Initialize all to nil time
 // For background timers, they will fire immediately
@@ -41,6 +43,7 @@ absolute_time_t next_status_update = { 0 };
 absolute_time_t next_led_update = { 0 };
 absolute_time_t next_connect_ping = { 0 };
 absolute_time_t next_controller_update = { 0 };
+absolute_time_t next_ir_update = { 0 };
 
 /**
  * @brief Check if a timer is ready. If so advance it to the next interval.
@@ -87,6 +90,7 @@ static bool timer_ready(absolute_time_t *next_fire_ptr, uint32_t interval_ms, bo
 static void start_ros_timers() {
     next_heartbeat = make_timeout_time_ms(HEARTBEAT_TIME_MS);
     next_status_update = make_timeout_time_ms(FIRMWARE_STATUS_TIME_MS);
+    next_ir_update = make_timeout_time_ms(IR_UPDATE_PERIOD_MS);
 }
 
 /**
@@ -120,6 +124,9 @@ static void tick_ros_tasks() {
     }
 
     // TODO: Put any additional ROS tasks added here
+    if (timer_ready(&next_ir_update, IR_UPDATE_PERIOD_MS, false)) {
+        RCSOFTRETVCHECK(ros_publish_ir_sensors());
+    }
 }
 
 static void tick_background_tasks() {
@@ -197,8 +204,11 @@ int main() {
     led_init();
     micro_ros_init_error_handling();
     // TODO: Put any additional hardware initialization code here
-
     controller_init();
+
+    ir_init(IR0_PIN);
+    ir_init(IR1_PIN);
+    ir_init(IR2_PIN);
 
 // Initialize ROS Transports
 // TODO: If a transport won't be needed for your specific build (like it's lacking the proper port), you can remove it
