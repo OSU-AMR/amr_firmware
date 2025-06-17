@@ -30,12 +30,12 @@ static void pulse_callback(uint gpio, uint32_t events) {
         curr_enc = encoders[i];
 
         if (gpio == curr_enc->PIN_A) {
-            curr_enc->pulse_counter += (curr_enc->a_state == curr_enc->b_state) ? 1 : -1;
+            curr_enc->pulse_counter += (curr_enc->a_state == curr_enc->b_state) ? 1 : -1 * curr_enc->inverted_mul;
             curr_enc->a_state = events & 8;
             break;
         }
         else if (gpio == curr_enc->PIN_B) {
-            curr_enc->pulse_counter += (curr_enc->a_state != curr_enc->b_state) ? 1 : -1;
+            curr_enc->pulse_counter += (curr_enc->a_state != curr_enc->b_state) ? 1 : -1 * curr_enc->inverted_mul;
             curr_enc->b_state = events & 8;
             break;
         }
@@ -106,7 +106,7 @@ float encoder_get_velocity(encoder *enc) {
     return velocity;
 }
 
-void encoder_init(encoder *enc, uint pin_a, uint pin_b, uint tpr) {
+void encoder_init(encoder *enc, uint pin_a, uint pin_b, uint tpr, bool inverted) {
     enc->PIN_A = pin_a;
     enc->PIN_B = pin_b;
     enc->cpr = tpr * QUADRATURE_SCALE;
@@ -118,6 +118,7 @@ void encoder_init(encoder *enc, uint pin_a, uint pin_b, uint tpr) {
     enc->prev_timestamp_us = 0;
     enc->prev_Th = 0.0f;
     enc->pulse_per_second = 0.0f;
+    enc->inverted_mul = inverted ? -1 : 1;
 
     gpio_init(pin_a);
     gpio_init(pin_b);
