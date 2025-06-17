@@ -47,18 +47,18 @@ static volatile struct core1_cmd_shared_mem {
 BLDCMotor_t motors[NUM_MOTORS];
 BLDCDRIVER3PWM_t drivers[NUM_MOTORS];
 
-const fixedpt motor_inversions[NUM_MOTORS] = { 1 };
+const fixedpt motor_inversions[NUM_MOTORS] = { fixedpt_fromint(-1), fixedpt_fromint(1) };
 
 static void motor_make(uint idx, uint p0_pin, uint p1_pin, uint p2_pin, uint en_pin) {
     make_BLDCMotor(&motors[idx], NUM_POLE_PAIRS);
     make_BLDCDriver3PWM(&drivers[idx], p0_pin, p1_pin, p2_pin, en_pin);
 
     drivers[idx].voltage_power_supply = DRIVER_VOLTAGE_SUPPLY_FIXEDPT;
-    drivers[idx].voltage_limit = fixedpt_fromint(3);
+    drivers[idx].voltage_limit = DRIVER_VOLTAGE_SUPPLY_FIXEDPT;
     driver_init(&drivers[idx]);
     motors[idx].driver = &drivers[idx];  // Link driver
 
-    motors[idx].voltage_limit = fixedpt_fromint(3);
+    motors[idx].voltage_limit = DRIVER_VOLTAGE_SUPPLY_FIXEDPT;
     motors[idx].controller = velocity_openloop;
 
     motor_init(&motors[idx]);
@@ -85,8 +85,8 @@ static void __time_critical_func(core1_main)() {
         spin_unlock(target_req.lock, irq);
 
         for (int i = 0; i < NUM_MOTORS; i++) {
-            // motors[i].voltage_limit = voltage_limit_cached[i];
-            motor_move(&motors[i], target_rps_cached[i]);
+            motors[i].voltage_limit = voltage_limit_cached[i];
+            motor_move(&motors[i], fixedpt_mul(target_rps_cached[i], motor_inversions[i]));
         }
     }
 }
