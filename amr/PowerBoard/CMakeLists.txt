@@ -55,5 +55,6 @@ target_link_libraries(power_board PUBLIC
     # TODO: Add any additional hardware here (ex. hardware_adc)
     micro_ros_usb
     driver_mfrc522
+    driver_cd74hc4051
 )
 

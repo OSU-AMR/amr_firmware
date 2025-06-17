@@ -12,6 +12,7 @@
 #include <rmw_microros/rmw_microros.h>
 #include <amr_msgs/msg/firmware_status.h>
 #include <std_msgs/msg/bool.h>
+#include <std_msgs/msg/float32.h>
 #include <std_msgs/msg/int8.h>
 #include <std_msgs/msg/string.h>
 
@@ -27,6 +28,7 @@
 #define FIRMWARE_STATUS_PUBLISHER_NAME "state/firmware"
 #define KILLSWITCH_SUBCRIBER_NAME "state/kill"
 #define RFID_PUBLISHER_NAME "state/rfid"
+#define BATTERY_VOLTAGE_PUBLISHER_NAME "state/battery/voltage"
 
 bool ros_connected = false;
 
@@ -46,6 +48,8 @@ std_msgs__msg__Bool killswitch_msg;
 
 rcl_publisher_t rfid_publisher;
 uint8_t last_tag[MAX_UID_SIZE];
+
+rcl_publisher_t battery_voltage_publisher;
 
 // ========================================
 // Executor Callbacks
@@ -164,6 +168,15 @@ rcl_ret_t ros_publish_rfid(uint8_t bytes[], uint8_t size) {
     return RCL_RET_OK;
 }
 
+rcl_ret_t ros_publish_battery_voltage(float voltage) {
+    std_msgs__msg__Float32 voltage_msg;
+    voltage_msg.data = voltage;
+
+    RCSOFTRETCHECK(rcl_publish(&battery_voltage_publisher, &voltage_msg, NULL));
+
+    return RCL_RET_OK;
+}
+
 // ========================================
 // ROS Core
 // ========================================
@@ -184,6 +197,10 @@ rcl_ret_t ros_init() {
 
     RCRETCHECK(rclc_publisher_init_default(&rfid_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String),
                                            RFID_PUBLISHER_NAME));
+
+    RCRETCHECK(rclc_publisher_init_default(&battery_voltage_publisher, &node,
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+                                           BATTERY_VOLTAGE_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_subscription_init_best_effort(
         &killswtich_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool), KILLSWITCH_SUBCRIBER_NAME));
@@ -215,6 +232,7 @@ void ros_fini(void) {
     RCSOFTCHECK(rcl_publisher_fini(&heartbeat_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&firmware_status_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&rfid_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&battery_voltage_publisher, &node));
     RCSOFTCHECK(rclc_executor_fini(&executor));
     RCSOFTCHECK(rcl_node_fini(&node));
     RCSOFTCHECK(rclc_support_fini(&support));

@@ -1,6 +1,7 @@
 #include "ros.h"
 #include "safety_interface.h"
 
+#include "driver/cd74hc4051.h"
 #include "driver/led.h"
 #include "driver/mfrc522.h"
 #include "pico/stdlib.h"
@@ -29,6 +30,7 @@
 #define FIRMWARE_STATUS_TIME_MS 1000
 #define LED_UPTIME_INTERVAL_MS 250
 #define RFID_POLL_PERIOD_MS 100
+#define BATTERY_VOLTAGE_PERIOD_MS 1000
 
 // Initialize all to nil time
 // For background timers, they will fire immediately
@@ -38,6 +40,7 @@ absolute_time_t next_status_update = { 0 };
 absolute_time_t next_led_update = { 0 };
 absolute_time_t next_connect_ping = { 0 };
 absolute_time_t next_rfid_read = { 0 };
+absolute_time_t next_battery_update = { 0 };
 
 MFRC522Ptr_t mfrc;
 bool rfid_ready = false;
@@ -87,6 +90,7 @@ static bool timer_ready(absolute_time_t *next_fire_ptr, uint32_t interval_ms, bo
 static void start_ros_timers() {
     next_heartbeat = make_timeout_time_ms(HEARTBEAT_TIME_MS);
     next_status_update = make_timeout_time_ms(FIRMWARE_STATUS_TIME_MS);
+    next_battery_update = make_timeout_time_ms(BATTERY_VOLTAGE_PERIOD_MS);
 }
 
 /**
@@ -123,6 +127,13 @@ static void tick_ros_tasks() {
     if (rfid_ready) {
         RCSOFTRETVCHECK(ros_publish_rfid(mfrc->uid.uidByte, mfrc->uid.size));
         rfid_ready = false;
+    }
+
+    if (timer_ready(&next_battery_update, BATTERY_VOLTAGE_PERIOD_MS, false)) {
+        float vout = multiplexer_decode_analog(BATT_VOLT_MUX_NUM);
+
+        float vin = vout * (BATT_VOLT_R1 / BATT_VOLT_R2) / BATT_VOLT_R2;
+        ros_publish_battery_voltage(vin);
     }
 }
 
@@ -183,6 +194,9 @@ int main() {
     PCD_Init(mfrc, pio0, RFID_MISO_PIN, RFID_MOSI_PIN, RFID_CLK_PIN, RFID_CS_PIN);
     // Don't start polling the RFID right away or we'll miss a timer on startup
     next_rfid_read = make_timeout_time_ms(RFID_POLL_PERIOD_MS);
+
+    // Init mux
+    multiplexer_init(MP_DATA_PIN, MP_S0_PIN, MP_S1_PIN, MP_S2_PIN);
 
 // Initialize ROS Transports
 // TODO: If a transport won't be needed for your specific build (like it's lacking the proper port), you can remove it
