@@ -26,6 +26,11 @@
         // AMR Boards
         // ========================================
         {
+            "name": "AMR Power Board",
+            "boardType": "amr/power_board",
+            "serial": "E46211015B0D2932"
+        },
+        {
             "name": "AMR test pico",
             "boardType": "amr/amr_pico",
             "serial": "E6614C311B25A538"
