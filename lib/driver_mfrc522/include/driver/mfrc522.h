@@ -16,7 +16,7 @@
 #ifndef MFRC522_h
 #define MFRC522_h
 
-#include "hardware/spi.h"
+#include "driver/pio_spi.h"
 #include "pico/stdlib.h"
 
 #include <stdint.h>
@@ -264,10 +264,12 @@ typedef enum _StatusCode {
     STATUS_MIFARE_NACK = 0xff  // A MIFARE PICC responded with NAK.
 } StatusCode;
 
+#define MAX_UID_SIZE 10
+
 // A struct used for passing the UID of a PICC.
 typedef struct {
     uint8_t size;  // Number of bytes in the UID. 4, 7 or 10.
-    uint8_t uidByte[10];
+    uint8_t uidByte[MAX_UID_SIZE];
     uint8_t sak;  // The SAK (Select acknowledge) byte returned from the PICC
                   // after successful selection.
 } Uid;
@@ -287,7 +289,7 @@ typedef struct {
 struct MFRC522_T {
     Uid uid;  // Used by PICC_ReadCardSerial().
     // Variables used in the SSP(SPI) peripheral of the board
-    spi_inst_t *spi;      // Select SSP0 or SSP1
+    pio_spi_inst_t *spi;  // PIO SPI interface
     uint _chipSelectPin;  // = {1, 8}; // As default example use GPIO1[8]= P1_5
     uint8_t Tx_Buf[BUFFER_SIZE];
     uint8_t Rx_Buf[BUFFER_SIZE];
@@ -321,7 +323,7 @@ static inline void cs_deselect(const uint cs);
 /*******************************************************************************
  * Functions for manipulating the MFRC522
  *******************************************************************************/
-void PCD_Init(MFRC522Ptr_t mfrc, spi_inst_t *spi, uint miso_pin, uint mosi_pin, uint sck_pin, uint cs_pin);
+void PCD_Init(MFRC522Ptr_t mfrc, PIO pio_inst, uint miso_pin, uint mosi_pin, uint sck_pin, uint cs_pin);
 void PCD_Reset(MFRC522Ptr_t mfrc);
 void PCD_AntennaOn(MFRC522Ptr_t mfrc);
 void PCD_AntennaOff(MFRC522Ptr_t mfrc);
@@ -372,8 +374,6 @@ void PCD_DumpVersionToSerial(MFRC522Ptr_t mfrc);
 void PICC_DumpToSerial(MFRC522Ptr_t mfrc, Uid *uid);
 void PICC_DumpDetailsToSerial(Uid *uid);
 void PICC_DumpMifareClassicToSerial(MFRC522Ptr_t mfrc, Uid *uid, PICC_Type piccType, MIFARE_Key *key);
-void PICC_DumpMifareClassicSectorToSerial(MFRC522Ptr_t mfrc, Uid *uid, MIFARE_Key *key, uint8_t sector);
-void PICC_DumpMifareUltralightToSerial(MFRC522Ptr_t mfrc);
 
 // Advanced functions for MIFARE
 void MIFARE_SetAccessBits(uint8_t *accessBitBuffer, uint8_t g0, uint8_t g1, uint8_t g2, uint8_t g3);
