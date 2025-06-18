@@ -92,6 +92,8 @@ rcl_ret_t ros_update_firmware_status(uint8_t client_id);
 
 rcl_ret_t ros_publish_ir_sensors();
 
+rcl_ret_t ros_publish_encoders();
+
 #undef MICRO_ROS_TRANSPORT_USB
 #define MICRO_ROS_TRANSPORT_CAN 1
 

@@ -132,7 +132,7 @@ static void tick_ros_tasks() {
     if (timer_ready(&next_battery_update, BATTERY_VOLTAGE_PERIOD_MS, false)) {
         float vout = multiplexer_decode_analog(BATT_VOLT_MUX_NUM);
 
-        float vin = vout * (BATT_VOLT_R1 / BATT_VOLT_R2) / BATT_VOLT_R2;
+        float vin = vout * (BATT_VOLT_R1 + BATT_VOLT_R2) / BATT_VOLT_R2;
         ros_publish_battery_voltage(vin);
     }
 }

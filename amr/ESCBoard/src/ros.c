@@ -150,6 +150,10 @@ rcl_ret_t ros_publish_ir_sensors() {
     return RCL_RET_OK;
 }
 
+rcl_ret_t ros_publish_encoders() {
+    return RCL_RET_OK;
+}
+
 // TODO: Add in node specific tasks here
 
 // ========================================

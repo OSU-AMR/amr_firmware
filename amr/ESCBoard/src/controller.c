@@ -15,14 +15,15 @@
 #define KP_FIXEDPT fixedpt_rconst(0.5f)
 #define MINIMUM_DESIGN_VEL_FIXEDPT fixedpt_rconst(10.0f)
 #define FF_LINEAR_FIXEDPT fixedpt_rconst(1.0f / 20.0f)
-#define VOLTAGE_BASELINE_FIXEDPT fixedpt_rconst(1.0f)
+#define VOLTAGE_BASELINE_FIXEDPT fixedpt_rconst(1.5f)
+#define MAX_SLEW_RATE_FIXEDPT fixedpt_rconst(0.30f)
 
 // Controller parameters
 #define ENCODER_FILTER_GAIN_FIXEDPT fixedpt_rconst(.01)
 #define MAX_SPEED_FIXEDPT fixedpt_rconst(130.0)  // rad / sec
 #define STARTUP_VOLTAGE_BOOST_FIXEDPT fixedpt_rconst(5.0)
 
-// Interfacer parameters
+// Interface parameters
 #define RPS_MIN_UPDATE_RATE_MS 500
 
 // Hardware
@@ -31,14 +32,15 @@ encoder encoders[NUM_MOTORS];
 // Internal state
 fixedpt vel_avg[NUM_MOTORS];
 
-fixedpt previous_loop_time;
-
 fixedpt target_velocity[NUM_MOTORS];
 fixedpt voltage_limit[NUM_MOTORS];
+fixedpt slewed_velocity[NUM_MOTORS];
 
 absolute_time_t rps_expiration = { 0 };
-fixedpt stale_target_velocity[NUM_MOTORS] = { 0 };
-fixedpt stale_voltage_limit[NUM_MOTORS] = { 0 };
+
+// Telemetry
+float encoder_vel[NUM_MOTORS];
+float encoder_angle[NUM_MOTORS];
 
 void controller_init() {
     core1_init();
@@ -48,37 +50,43 @@ void controller_init() {
 }
 
 void controller_tick() {
-    // Do this math as a separate loop since the timing here is somewhat important
-    // fixedpt time = fixedpt_rconst(to_us_since_boot(get_absolute_time()) * 1e-6f);
     for (int i = 0; i < NUM_MOTORS; i++) {
-        vel_avg[i] = fixedpt_div(
-            vel_avg[i] + fixedpt_mul(fixedpt_rconst(encoder_get_velocity(&encoders[i])), ENCODER_FILTER_GAIN_FIXEDPT),
-            fixedpt_fromint(1) + ENCODER_FILTER_GAIN_FIXEDPT);
-    }
-    // previous_loop_time = time;
+        // Get encoder data to store in telemetry
+        encoder_vel[i] = encoder_get_velocity(&encoders[i]);
+        encoder_angle[i] = encoder_get_angle(&encoders[i]);
 
-    for (int i = 0; i < NUM_MOTORS; i++) {
+        vel_avg[i] = fixedpt_div(vel_avg[i] + fixedpt_mul(fixedpt_rconst(encoder_vel[i]), ENCODER_FILTER_GAIN_FIXEDPT),
+                                 fixedpt_fromint(1) + ENCODER_FILTER_GAIN_FIXEDPT);
+
+        // Slew target velocity
+        fixedpt slew_error = target_velocity[i] - slewed_velocity[i];
+        if (fixedpt_abs(slew_error) < MAX_SLEW_RATE_FIXEDPT)
+            slewed_velocity[i] = target_velocity[i];
+        else
+            slewed_velocity[i] += fixedpt_mul(MAX_SLEW_RATE_FIXEDPT,
+                                              (fixedpt_div(slew_error, fixedpt_abs(slew_error))));  // slew_error != 0
+
         // Clamp max velocity
-        target_velocity[i] = MAX(MIN(MAX_SPEED_FIXEDPT, target_velocity[i]), -MAX_SPEED_FIXEDPT);
+        slewed_velocity[i] = MAX(MIN(MAX_SPEED_FIXEDPT, slewed_velocity[i]), -MAX_SPEED_FIXEDPT);
 
         // Handle voltage regulation
         voltage_limit[i] = fixedpt_rconst(0.0f);
 
-        if (target_velocity[i] > fixedpt_rconst(0.1f))
+        if (slewed_velocity[i] > fixedpt_rconst(0.1f))
             voltage_limit[i] =
-                fixedpt_mul(fixedpt_abs(target_velocity[i] - vel_avg[i]), KP_FIXEDPT) +
-                fixedpt_mul(fixedpt_abs(target_velocity[i] - MINIMUM_DESIGN_VEL_FIXEDPT), FF_LINEAR_FIXEDPT) +
+                fixedpt_mul(fixedpt_abs(slewed_velocity[i] - vel_avg[i]), KP_FIXEDPT) +
+                fixedpt_mul(fixedpt_abs(slewed_velocity[i] - MINIMUM_DESIGN_VEL_FIXEDPT), FF_LINEAR_FIXEDPT) +
                 VOLTAGE_BASELINE_FIXEDPT;
-        else if (target_velocity[i] < fixedpt_rconst(-0.1f)) {
+        else if (slewed_velocity[i] < fixedpt_rconst(-0.1f)) {
             voltage_limit[i] =
-                fixedpt_mul(fixedpt_abs(vel_avg[i] - target_velocity[i]), KP_FIXEDPT) +
-                fixedpt_mul(fixedpt_abs(target_velocity[i] - MINIMUM_DESIGN_VEL_FIXEDPT), FF_LINEAR_FIXEDPT) +
+                fixedpt_mul(fixedpt_abs(vel_avg[i] - slewed_velocity[i]), KP_FIXEDPT) +
+                fixedpt_mul(fixedpt_abs(slewed_velocity[i] - MINIMUM_DESIGN_VEL_FIXEDPT), FF_LINEAR_FIXEDPT) +
                 VOLTAGE_BASELINE_FIXEDPT;
         }
 
         // Startup voltage boost
-        if (fixedpt_div(vel_avg[i], target_velocity[i]) < fixedpt_rconst(0.5f) &&
-            fixedpt_abs(target_velocity[i]) > fixedpt_rconst(0.1f)) {
+        if (fixedpt_div(vel_avg[i], slewed_velocity[i]) < fixedpt_rconst(0.5f) &&
+            fixedpt_abs(slewed_velocity[i]) > fixedpt_rconst(0.1f)) {
             voltage_limit[i] = voltage_limit[i] + STARTUP_VOLTAGE_BOOST_FIXEDPT;
         }
 
@@ -90,10 +98,16 @@ void controller_tick() {
     // fixedpt_tofloat(voltage_limit[1]));
     // LOG_INFO("Got encoder vels as %f, %f", fixedpt_tofloat(vel_avg[0]), fixedpt_tofloat(vel_avg[1]));
 
-    // Send motor commands (under spin lock). Enforce rps command staling
-    bool rps_stale = time_reached(rps_expiration);
-    core1_update_targets(rps_stale ? stale_target_velocity : target_velocity,
-                         rps_stale ? stale_voltage_limit : voltage_limit);
+    // Kill motor power immediately if we haven't gotten a new command in a while
+    if (time_reached(rps_expiration)) {
+        for (int i = 0; i < NUM_MOTORS; i++) {
+            slewed_velocity[i] = 0;
+            voltage_limit[i] = 0;
+        }
+    }
+
+    // Send motor commands (under spin lock)
+    core1_update_targets(slewed_velocity, voltage_limit);
 }
 
 void controller_set_target(const float *rps) {
@@ -103,4 +117,12 @@ void controller_set_target(const float *rps) {
 
     // Set new timeout for command staling
     rps_expiration = make_timeout_time_ms(RPS_MIN_UPDATE_RATE_MS);
+}
+
+const float *controller_get_encoders_vel() {
+    return encoder_vel;
+}
+
+const float *controller_get_encoders_angle() {
+    return encoder_angle;
 }
