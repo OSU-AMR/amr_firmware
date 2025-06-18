@@ -137,11 +137,11 @@ rcl_ret_t ros_heartbeat_pulse(uint8_t client_id) {
 }
 
 rcl_ret_t ros_publish_ir_sensors() {
-    std_msgs__msg__Int8 left_ir_msg, right_ir_msg, back_ir_msg;
+    std_msgs__msg__UInt16 left_ir_msg, right_ir_msg, back_ir_msg;
 
-    left_ir_msg.data = ir_read(IR0_PIN);
+    left_ir_msg.data = ir_read(IR2_PIN);
     right_ir_msg.data = ir_read(IR1_PIN);
-    back_ir_msg.data = ir_read(IR2_PIN);
+    back_ir_msg.data = ir_read(IR0_PIN);
 
     RCSOFTRETCHECK(rcl_publish(&left_ir_publisher, &left_ir_msg, NULL));
     RCSOFTRETCHECK(rcl_publish(&right_ir_publisher, &right_ir_msg, NULL));
