@@ -51,6 +51,7 @@ target_link_libraries(template_project PUBLIC
     micro_ros_can   # Micro ros support (supports _can, _usb, _eth)
     titan_logger    # A nice little logging library
     titan_safety    # Handles critical code (Watchdog, Kill Switch, Fault Reporting)
+    micro_ros_usb
 
     # TODO: Add any additional hardware here (ex. hardware_adc)
 )

@@ -42,5 +42,15 @@
         "**/.git/subtree-cache/**": true,
         "lib/pico-sdk/": true,
         "**/build/**": true
-    }
+    },
+    "python.autoComplete.extraPaths": [
+        "/home/hollis/AMR/install/amr_msgs/local/lib/python3.10/dist-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/hollis/AMR/install/amr_msgs/local/lib/python3.10/dist-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ]
 }

@@ -6,7 +6,7 @@
 #include <rclc/executor.h>
 #include <rclc/rclc.h>
 #include <rmw_microros/rmw_microros.h>
-#include <riptide_msgs2/msg/dynamixel_status.h>
+#include <amr_msgs/msg/dynamixel_status.h>
 #include <std_srvs/srv/trigger.h>
 
 static rcl_publisher_t dynamixel_status_publisher;
@@ -24,7 +24,7 @@ static std_srvs__srv__Trigger_Request set_closed_pos_req;
 static std_srvs__srv__Trigger_Response set_closed_pos_res;
 
 rcl_ret_t actuator_v2_dynamixel_update_status(void) {
-    riptide_msgs2__msg__DynamixelStatus status;
+    amr_msgs__msg__DynamixelStatus status;
     actuator_dxlitr_t itr;
 
     // Iterate through dynamixels, publishing status
@@ -79,7 +79,7 @@ const size_t actuator_v2_dynamixel_num_executor_handles = 3;
 
 rcl_ret_t actuator_v2_dynamixel_init(rcl_node_t *node, rclc_executor_t *executor) {
     RCRETCHECK(rclc_publisher_init_best_effort(&dynamixel_status_publisher, node,
-                                               ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, DynamixelStatus),
+                                               ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, DynamixelStatus),
                                                DYNAMIXEL_STATUS_TOPIC_NAME));
 
     RCRETCHECK(rclc_service_init_default(&move_home_service, node, ROSIDL_GET_SRV_TYPE_SUPPORT(std_srvs, srv, Trigger),

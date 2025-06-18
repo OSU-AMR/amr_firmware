@@ -12,9 +12,9 @@
 #include <rclc/executor.h>
 #include <rclc/rclc.h>
 #include <rmw_microros/rmw_microros.h>
-#include <riptide_msgs2/msg/depth.h>
-#include <riptide_msgs2/msg/firmware_status.h>
-#include <riptide_msgs2/msg/led_command.h>
+#include <amr_msgs/msg/depth.h>
+#include <amr_msgs/msg/firmware_status.h>
+#include <amr_msgs/msg/led_command.h>
 #include <std_msgs/msg/bool.h>
 #include <std_msgs/msg/int8.h>
 
@@ -50,11 +50,11 @@ rcl_subscription_t killswtich_subscriber;
 std_msgs__msg__Bool killswitch_msg;
 
 rcl_subscription_t led_subscriber;
-riptide_msgs2__msg__LedCommand led_command_msg;
+amr_msgs__msg__LedCommand led_command_msg;
 rcl_subscription_t physkill_notify_subscriber;
 std_msgs__msg__Bool physkill_notify_msg;
 rcl_subscription_t depth_subscriber;
-riptide_msgs2__msg__Depth depth_msg;
+amr_msgs__msg__Depth depth_msg;
 
 // TODO: Add node specific items here
 
@@ -68,10 +68,10 @@ static void killswitch_subscription_callback(const void *msgin) {
 }
 
 static void led_subscription_callback(const void *msgin) {
-    const riptide_msgs2__msg__LedCommand *msg = (const riptide_msgs2__msg__LedCommand *) msgin;
+    const amr_msgs__msg__LedCommand *msg = (const amr_msgs__msg__LedCommand *) msgin;
 
     // Ignore commands not for us
-    if ((msg->target & riptide_msgs2__msg__LedCommand__TARGET_ALU) == 0) {
+    if ((msg->target & amr_msgs__msg__LedCommand__TARGET_ALU) == 0) {
         return;
     }
 
@@ -80,19 +80,19 @@ static void led_subscription_callback(const void *msgin) {
 
     // Convert message mode to local mode
     switch (msg->mode) {
-    case riptide_msgs2__msg__LedCommand__MODE_SOLID:
+    case amr_msgs__msg__LedCommand__MODE_SOLID:
         mode = MODE_SOLID;
         break;
-    case riptide_msgs2__msg__LedCommand__MODE_SLOW_FLASH:
+    case amr_msgs__msg__LedCommand__MODE_SLOW_FLASH:
         mode = MODE_SLOW_FLASH;
         break;
-    case riptide_msgs2__msg__LedCommand__MODE_FAST_FLASH:
+    case amr_msgs__msg__LedCommand__MODE_FAST_FLASH:
         mode = MODE_FAST_FLASH;
         break;
-    case riptide_msgs2__msg__LedCommand__MODE_BREATH:
+    case amr_msgs__msg__LedCommand__MODE_BREATH:
         mode = MODE_BREATH;
         break;
-    case riptide_msgs2__msg__LedCommand__SINGLETON_FLASH:
+    case amr_msgs__msg__LedCommand__SINGLETON_FLASH:
         is_singleton = true;
         break;
     default:
@@ -124,7 +124,7 @@ static void physkill_notify_subscription_callback(const void *msgin) {
 }
 
 static void depth_subscription_callback(const void *msgin) {
-    const riptide_msgs2__msg__Depth *msg = (const riptide_msgs2__msg__Depth *) msgin;
+    const amr_msgs__msg__Depth *msg = (const amr_msgs__msg__Depth *) msgin;
     led_depth_set(msg->depth);
 }
 
@@ -135,7 +135,7 @@ static void depth_subscription_callback(const void *msgin) {
 // ========================================
 
 rcl_ret_t ros_update_firmware_status(uint8_t client_id) {
-    riptide_msgs2__msg__FirmwareStatus status_msg;
+    amr_msgs__msg__FirmwareStatus status_msg;
     status_msg.board_name.data = PICO_BOARD;
     status_msg.board_name.size = strlen(PICO_BOARD);
     status_msg.board_name.capacity = status_msg.board_name.size + 1;  // includes NULL byte
@@ -220,20 +220,20 @@ rcl_ret_t ros_init() {
                                            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int8), HEARTBEAT_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_default(&firmware_status_publisher, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, FirmwareStatus),
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, FirmwareStatus),
                                            FIRMWARE_STATUS_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_subscription_init_best_effort(
         &killswtich_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool), KILLSWITCH_SUBCRIBER_NAME));
 
     RCRETCHECK(rclc_subscription_init_default(
-        &led_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, LedCommand), LED_SUBSCRIBER_NAME));
+        &led_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, LedCommand), LED_SUBSCRIBER_NAME));
 
     RCRETCHECK(rclc_subscription_init_default(&physkill_notify_subscriber, &node,
                                               ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
                                               PHYSICAL_KILL_NOTIFY_SUBSCRIBER_NAME));
     RCRETCHECK(rclc_subscription_init_best_effort(
-        &depth_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, Depth), DEPTH_SUBSCRIBER_NAME));
+        &depth_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, Depth), DEPTH_SUBSCRIBER_NAME));
 
     // Executor Initialization
     const int executor_num_handles = 4;

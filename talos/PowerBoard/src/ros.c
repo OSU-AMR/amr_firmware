@@ -13,10 +13,10 @@
 #include <rclc/executor.h>
 #include <rclc/rclc.h>
 #include <rmw_microros/rmw_microros.h>
-#include <riptide_msgs2/msg/electrical_command.h>
-#include <riptide_msgs2/msg/electrical_readings.h>
-#include <riptide_msgs2/msg/firmware_status.h>
-#include <riptide_msgs2/msg/kill_switch_report.h>
+#include <amr_msgs/msg/electrical_command.h>
+#include <amr_msgs/msg/electrical_readings.h>
+#include <amr_msgs/msg/firmware_status.h>
+#include <amr_msgs/msg/kill_switch_report.h>
 #include <std_msgs/msg/bool.h>
 #include <std_msgs/msg/float32.h>
 #include <std_msgs/msg/int8.h>
@@ -58,9 +58,9 @@ int failed_heartbeats = 0;
 // Node specific Variables
 rcl_publisher_t firmware_status_publisher;
 rcl_publisher_t electrical_reading_publisher;
-riptide_msgs2__msg__ElectricalReadings electrical_reading_msg = { 0 };
+amr_msgs__msg__ElectricalReadings electrical_reading_msg = { 0 };
 rcl_subscription_t elec_command_subscriber;
-riptide_msgs2__msg__ElectricalCommand elec_command_msg;
+amr_msgs__msg__ElectricalCommand elec_command_msg;
 rcl_publisher_t aux_switch_publisher;
 rcl_publisher_t balancing_feedback_publisher;
 rcl_publisher_t temp_status_publisher;
@@ -71,7 +71,7 @@ rcl_publisher_t killswitch_publisher;
 rcl_publisher_t physkill_notify_publisher;
 static bool last_physical_kill_asserting_kill = true;
 rcl_subscription_t software_kill_subscriber;
-riptide_msgs2__msg__KillSwitchReport software_kill_msg;
+amr_msgs__msg__KillSwitchReport software_kill_msg;
 char software_kill_frame_str[SAFETY_SOFTWARE_KILL_FRAME_STR_SIZE + 1] = { 0 };
 
 // ========================================
@@ -79,11 +79,11 @@ char software_kill_frame_str[SAFETY_SOFTWARE_KILL_FRAME_STR_SIZE + 1] = { 0 };
 // ========================================
 
 static void software_kill_subscription_callback(const void *msgin) {
-    const riptide_msgs2__msg__KillSwitchReport *msg = (const riptide_msgs2__msg__KillSwitchReport *) msgin;
+    const amr_msgs__msg__KillSwitchReport *msg = (const amr_msgs__msg__KillSwitchReport *) msgin;
 
     // Make sure kill switch id is valid
-    if (msg->kill_switch_id >= riptide_msgs2__msg__KillSwitchReport__NUM_KILL_SWITCHES ||
-        msg->kill_switch_id == riptide_msgs2__msg__KillSwitchReport__KILL_SWITCH_PHYSICAL) {
+    if (msg->kill_switch_id >= amr_msgs__msg__KillSwitchReport__NUM_KILL_SWITCHES ||
+        msg->kill_switch_id == amr_msgs__msg__KillSwitchReport__KILL_SWITCH_PHYSICAL) {
         LOG_WARN("Invalid kill switch id used %d", msg->kill_switch_id);
         safety_raise_fault_with_arg(FAULT_ROS_BAD_COMMAND, msg->kill_switch_id);
         return;
@@ -121,11 +121,11 @@ static void software_kill_subscription_callback(const void *msgin) {
 }
 
 static void elec_command_subscription_callback(const void *msgin) {
-    const riptide_msgs2__msg__ElectricalCommand *msg = (const riptide_msgs2__msg__ElectricalCommand *) msgin;
-    if (msg->command == riptide_msgs2__msg__ElectricalCommand__ENABLE_FANS) {
+    const amr_msgs__msg__ElectricalCommand *msg = (const amr_msgs__msg__ElectricalCommand *) msgin;
+    if (msg->command == amr_msgs__msg__ElectricalCommand__ENABLE_FANS) {
         gpio_put(FAN_SWITCH_PIN, true);
     }
-    else if (msg->command == riptide_msgs2__msg__ElectricalCommand__DISABLE_FANS) {
+    else if (msg->command == amr_msgs__msg__ElectricalCommand__DISABLE_FANS) {
         gpio_put(FAN_SWITCH_PIN, false);
     }
 }
@@ -200,7 +200,7 @@ rcl_ret_t ros_publish_killswitch() {
 }
 
 rcl_ret_t ros_update_firmware_status(uint8_t client_id) {
-    riptide_msgs2__msg__FirmwareStatus status_msg;
+    amr_msgs__msg__FirmwareStatus status_msg;
     status_msg.board_name.data = PICO_BOARD;
     status_msg.board_name.size = strlen(PICO_BOARD);
     status_msg.board_name.capacity = status_msg.board_name.size + 1;  // includes NULL byte
@@ -216,7 +216,7 @@ rcl_ret_t ros_update_firmware_status(uint8_t client_id) {
     status_msg.kill_switches_needs_update = 0;
     status_msg.kill_switches_timed_out = 0;
 
-    for (int i = 0; i < riptide_msgs2__msg__KillSwitchReport__NUM_KILL_SWITCHES; i++) {
+    for (int i = 0; i < amr_msgs__msg__KillSwitchReport__NUM_KILL_SWITCHES; i++) {
         if (kill_switch_states[i].enabled) {
             status_msg.kill_switches_enabled |= (1 << i);
         }
@@ -285,7 +285,7 @@ rcl_ret_t ros_init() {
                                            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int8), HEARTBEAT_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_default(&firmware_status_publisher, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, FirmwareStatus),
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, FirmwareStatus),
                                            FIRMWARE_STATUS_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_default(
@@ -296,7 +296,7 @@ rcl_ret_t ros_init() {
                                            PHYSICAL_KILL_NOTIFY_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_default(&electrical_reading_publisher, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, ElectricalReadings),
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, ElectricalReadings),
                                            ELECTRICAL_READING_NAME));
 
     RCRETCHECK(rclc_publisher_init_default(
@@ -307,11 +307,11 @@ rcl_ret_t ros_init() {
                                            BALANCING_FEEDBACK_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_subscription_init_best_effort(&software_kill_subscriber, &node,
-                                                  ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, KillSwitchReport),
+                                                  ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, KillSwitchReport),
                                                   SOFT_KILL_SUBSCRIBER_NAME));
 
     RCRETCHECK(rclc_subscription_init_default(&elec_command_subscriber, &node,
-                                              ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, ElectricalCommand),
+                                              ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, ElectricalCommand),
                                               ELECTRICAL_COMMAND_SUBSCRIBER_NAME));
 
     RCRETCHECK(rclc_publisher_init_best_effort(&temp_status_publisher, &node,

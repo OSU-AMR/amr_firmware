@@ -138,16 +138,16 @@ uint8_t dropper_get_state(void) {
     hard_assert_if(ACTUATORS, !actuators_initialized);
 
     if (dropper_active_time_ms == 0) {
-        return riptide_msgs2__msg__ActuatorStatus__DROPPER_ERROR;
+        return amr_msgs__msg__ActuatorStatus__DROPPER_ERROR;
     }
     else if (!actuators_armed) {
-        return riptide_msgs2__msg__ActuatorStatus__DROPPER_DISARMED;
+        return amr_msgs__msg__ActuatorStatus__DROPPER_DISARMED;
     }
     if (dropper_alarm_active) {
-        return riptide_msgs2__msg__ActuatorStatus__DROPPER_DROPPING;
+        return amr_msgs__msg__ActuatorStatus__DROPPER_DROPPING;
     }
     else {
-        return riptide_msgs2__msg__ActuatorStatus__DROPPER_READY;
+        return amr_msgs__msg__ActuatorStatus__DROPPER_READY;
     }
 }
 

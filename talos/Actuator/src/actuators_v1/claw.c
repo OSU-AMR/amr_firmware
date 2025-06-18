@@ -17,13 +17,13 @@
 // TODO: Fix this up to support new design of being interrupt safe and supporting checking actuator arm state
 
 enum claw_state {
-    CLAW_STATE_ERROR = riptide_msgs2__msg__ActuatorStatus__CLAW_ERROR,
-    CLAW_STATE_DISARMED = riptide_msgs2__msg__ActuatorStatus__CLAW_DISARMED,
-    CLAW_STATE_UNKNOWN_POSITION = riptide_msgs2__msg__ActuatorStatus__CLAW_UNKNOWN,
-    CLAW_STATE_OPENED = riptide_msgs2__msg__ActuatorStatus__CLAW_OPENED,
-    CLAW_STATE_CLOSED = riptide_msgs2__msg__ActuatorStatus__CLAW_CLOSED,
-    CLAW_STATE_OPENING = riptide_msgs2__msg__ActuatorStatus__CLAW_OPENING,
-    CLAW_STATE_CLOSING = riptide_msgs2__msg__ActuatorStatus__CLAW_CLOSING
+    CLAW_STATE_ERROR = amr_msgs__msg__ActuatorStatus__CLAW_ERROR,
+    CLAW_STATE_DISARMED = amr_msgs__msg__ActuatorStatus__CLAW_DISARMED,
+    CLAW_STATE_UNKNOWN_POSITION = amr_msgs__msg__ActuatorStatus__CLAW_UNKNOWN,
+    CLAW_STATE_OPENED = amr_msgs__msg__ActuatorStatus__CLAW_OPENED,
+    CLAW_STATE_CLOSED = amr_msgs__msg__ActuatorStatus__CLAW_CLOSED,
+    CLAW_STATE_OPENING = amr_msgs__msg__ActuatorStatus__CLAW_OPENING,
+    CLAW_STATE_CLOSING = amr_msgs__msg__ActuatorStatus__CLAW_CLOSING
 };
 
 static const uint direction_pin = CLAW_PHASE_PIN;

@@ -1,7 +1,7 @@
 #ifndef ACTUATORS_H
 #define ACTUATORS_H
 
-#include <riptide_msgs2/msg/actuator_status.h>
+#include <amr_msgs/msg/actuator_status.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -195,7 +195,7 @@ bool torpedo_set_timings(uint8_t torpedo_num, enum torpedo_timing_type timing_ty
 
 #if ACTUATOR_V2_SUPPORT
 
-#include <riptide_msgs2/msg/dynamixel_status.h>
+#include <amr_msgs/msg/dynamixel_status.h>
 
 #include <stddef.h>
 
@@ -216,7 +216,7 @@ void actuator_dxlitr_init(actuator_dxlitr_t *itr);
  * @return true Status was successfully retrieved and the iterator was advanced
  * @return false End of iterator reached
  */
-bool actuator_dxlitr_next(actuator_dxlitr_t *itr, riptide_msgs2__msg__DynamixelStatus *status_out);
+bool actuator_dxlitr_next(actuator_dxlitr_t *itr, amr_msgs__msg__DynamixelStatus *status_out);
 
 /**
  * @brief Attempts to set the current torpedo marker servo position as its home position.

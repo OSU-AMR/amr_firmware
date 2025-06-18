@@ -140,30 +140,30 @@ uint8_t claw_get_state(void) {
     hard_assert_if(ACTUATORS, !actuators_initialized);
 
     if (!claw_state->connected || !claw_state->homed || claw_state->hardware_err) {
-        return riptide_msgs2__msg__ActuatorStatus__CLAW_ERROR;
+        return amr_msgs__msg__ActuatorStatus__CLAW_ERROR;
     }
     else if (!claw_state->enabled || !actuators_armed) {
-        return riptide_msgs2__msg__ActuatorStatus__CLAW_DISARMED;
+        return amr_msgs__msg__ActuatorStatus__CLAW_DISARMED;
     }
     else if (claw_state->move_active) {
         if (claw_state->target_position == CLAW_OPEN_POSITION) {
-            return riptide_msgs2__msg__ActuatorStatus__CLAW_OPENING;
+            return amr_msgs__msg__ActuatorStatus__CLAW_OPENING;
         }
         else if (claw_state->target_position == CLAW_CLOSE_POSITION) {
-            return riptide_msgs2__msg__ActuatorStatus__CLAW_CLOSING;
+            return amr_msgs__msg__ActuatorStatus__CLAW_CLOSING;
         }
         else {
-            return riptide_msgs2__msg__ActuatorStatus__CLAW_UNKNOWN;
+            return amr_msgs__msg__ActuatorStatus__CLAW_UNKNOWN;
         }
     }
     else {
         switch (claw_current_position) {
         case CLAW_OPENED:
-            return riptide_msgs2__msg__ActuatorStatus__CLAW_OPENED;
+            return amr_msgs__msg__ActuatorStatus__CLAW_OPENED;
         case CLAW_CLOSED:
-            return riptide_msgs2__msg__ActuatorStatus__CLAW_CLOSED;
+            return amr_msgs__msg__ActuatorStatus__CLAW_CLOSED;
         default:
-            return riptide_msgs2__msg__ActuatorStatus__CLAW_UNKNOWN;
+            return amr_msgs__msg__ActuatorStatus__CLAW_UNKNOWN;
         }
     }
 }

@@ -13,10 +13,10 @@
 #include <rclc/executor.h>
 #include <rclc/rclc.h>
 #include <rmw_microros/rmw_microros.h>
-#include <riptide_msgs2/msg/battery_status.h>
-#include <riptide_msgs2/msg/electrical_command.h>
-#include <riptide_msgs2/msg/firmware_status.h>
-#include <riptide_msgs2/msg/kill_switch_report.h>
+#include <amr_msgs/msg/battery_status.h>
+#include <amr_msgs/msg/electrical_command.h>
+#include <amr_msgs/msg/firmware_status.h>
+#include <amr_msgs/msg/kill_switch_report.h>
 #include <std_msgs/msg/bool.h>
 #include <std_msgs/msg/float32.h>
 #include <std_msgs/msg/int8.h>
@@ -54,8 +54,8 @@ int failed_heartbeats = 0;
 rcl_publisher_t firmware_status_publisher, battery_status_publisher, temp_status_publisher, humidity_status_publisher;
 rcl_subscription_t killswtich_subscriber, electrical_command_subscriber, swkill_subscriber, leak_subscriber;
 std_msgs__msg__Bool killswitch_msg;
-riptide_msgs2__msg__ElectricalCommand electrical_command_msg;
-riptide_msgs2__msg__KillSwitchReport swkill_msg;
+amr_msgs__msg__ElectricalCommand electrical_command_msg;
+amr_msgs__msg__KillSwitchReport swkill_msg;
 std_msgs__msg__Bool leak_msg;
 
 // ========================================
@@ -68,25 +68,25 @@ static void killswitch_subscription_callback(const void *msgin) {
 }
 
 static void electrical_command_callback(const void *msgin) {
-    const riptide_msgs2__msg__ElectricalCommand *msg = (const riptide_msgs2__msg__ElectricalCommand *) msgin;
+    const amr_msgs__msg__ElectricalCommand *msg = (const amr_msgs__msg__ElectricalCommand *) msgin;
 
     // check if the command was a power cycle
-    if (msg->command == riptide_msgs2__msg__ElectricalCommand__CYCLE_ROBOT) {
+    if (msg->command == amr_msgs__msg__ElectricalCommand__CYCLE_ROBOT) {
         LOG_INFO("ROS Command requested robot power cycle... Issuing temporary Emergency FET Shutdown");
         core1_power_cycle_robot();
     }
 
     // also check for a reset
-    if (msg->command == riptide_msgs2__msg__ElectricalCommand__KILL_ROBOT_POWER) {
+    if (msg->command == amr_msgs__msg__ElectricalCommand__KILL_ROBOT_POWER) {
         LOG_INFO("ROS Command requested kill robot power... Issuing latched Emergency FET Shutdown");
         core1_kill_robot_power();
     }
 }
 
 static void swkill_subscription_callback(const void *msgin) {
-    const riptide_msgs2__msg__KillSwitchReport *msg = (const riptide_msgs2__msg__KillSwitchReport *) msgin;
+    const amr_msgs__msg__KillSwitchReport *msg = (const amr_msgs__msg__KillSwitchReport *) msgin;
 
-    if (msg->kill_switch_id == riptide_msgs2__msg__KillSwitchReport__KILL_SWITCH_RQT_CONTROLLER) {
+    if (msg->kill_switch_id == amr_msgs__msg__KillSwitchReport__KILL_SWITCH_RQT_CONTROLLER) {
         // Rviz is currently running
         has_rviz = true;
     }
@@ -113,7 +113,7 @@ static void leak_subscription_callback(const void *msgin) {
 // ========================================
 
 rcl_ret_t ros_update_firmware_status(uint8_t client_id) {
-    riptide_msgs2__msg__FirmwareStatus status_msg;
+    amr_msgs__msg__FirmwareStatus status_msg;
     status_msg.board_name.data = PICO_BOARD;
     status_msg.board_name.size = strlen(PICO_BOARD);
     status_msg.board_name.capacity = status_msg.board_name.size + 1;  // includes NULL byte
@@ -173,7 +173,7 @@ rcl_ret_t ros_heartbeat_pulse(uint8_t client_id) {
 }
 
 rcl_ret_t ros_update_battery_status(bq_mfg_info_t bq_pack_info) {
-    riptide_msgs2__msg__BatteryStatus status;
+    amr_msgs__msg__BatteryStatus status;
 
     // push in the common cell info
     status.cell_name.data = "";
@@ -184,11 +184,11 @@ rcl_ret_t ros_update_battery_status(bq_mfg_info_t bq_pack_info) {
 
     bool side_det_is_high;
     if (core1_get_side_detect(&side_det_is_high)) {
-        status.detect = (side_det_is_high ? riptide_msgs2__msg__BatteryStatus__DETECT_PORT :
-                                            riptide_msgs2__msg__BatteryStatus__DETECT_STBD);
+        status.detect =
+            (side_det_is_high ? amr_msgs__msg__BatteryStatus__DETECT_PORT : amr_msgs__msg__BatteryStatus__DETECT_STBD);
     }
     else {
-        status.detect = riptide_msgs2__msg__BatteryStatus__DETECT_NONE;
+        status.detect = amr_msgs__msg__BatteryStatus__DETECT_NONE;
     }
 
     // read cell info
@@ -238,11 +238,11 @@ rcl_ret_t ros_init(uint8_t board_id) {
                                            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int8), HEARTBEAT_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_default(&firmware_status_publisher, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, FirmwareStatus),
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, FirmwareStatus),
                                            FIRMWARE_STATUS_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_default(&battery_status_publisher, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, BatteryStatus),
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, BatteryStatus),
                                            BATTERY_STATUS_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_best_effort(&temp_status_publisher, &node,
@@ -257,11 +257,11 @@ rcl_ret_t ros_init(uint8_t board_id) {
         &killswtich_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool), KILLSWITCH_SUBCRIBER_NAME));
 
     RCRETCHECK(rclc_subscription_init_default(&electrical_command_subscriber, &node,
-                                              ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, ElectricalCommand),
+                                              ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, ElectricalCommand),
                                               ELECTRICAL_COMMAND_SUBSCRIBER_NAME));
 
     RCRETCHECK(rclc_subscription_init_default(&swkill_subscriber, &node,
-                                              ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, KillSwitchReport),
+                                              ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, KillSwitchReport),
                                               SWKILL_SUBSCRIBER_NAME));
 
     RCRETCHECK(rclc_subscription_init_default(&leak_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),

@@ -305,7 +305,7 @@ void actuator_dxlitr_init(actuator_dxlitr_t *itr) {
     *itr = 0;
 }
 
-bool actuator_dxlitr_next(actuator_dxlitr_t *itr, riptide_msgs2__msg__DynamixelStatus *status_out) {
+bool actuator_dxlitr_next(actuator_dxlitr_t *itr, amr_msgs__msg__DynamixelStatus *status_out) {
     volatile struct dynamixel_eeprom *eeprom = NULL;
     volatile struct dynamixel_ram *ram = NULL;
 

@@ -12,10 +12,10 @@
 #include <rclc/executor.h>
 #include <rclc/rclc.h>
 #include <rmw_microros/rmw_microros.h>
-#include <riptide_msgs2/msg/dshot_command.h>
-#include <riptide_msgs2/msg/dshot_partial_telemetry.h>
-#include <riptide_msgs2/msg/dshot_rpm_feedback.h>
-#include <riptide_msgs2/msg/firmware_status.h>
+#include <amr_msgs/msg/dshot_command.h>
+#include <amr_msgs/msg/dshot_partial_telemetry.h>
+#include <amr_msgs/msg/dshot_rpm_feedback.h>
+#include <amr_msgs/msg/firmware_status.h>
 #include <std_msgs/msg/bool.h>
 #include <std_msgs/msg/float32.h>
 #include <std_msgs/msg/int32.h>
@@ -70,7 +70,7 @@ rcl_subscription_t dshot_tune_i_gain_subscriber;
 rcl_subscription_t dshot_tune_i_bound_subscriber;
 rcl_subscription_t dshot_tune_hard_limit_subscriber;
 rcl_subscription_t dshot_tune_min_command_subscriber;
-riptide_msgs2__msg__DshotCommand dshot_msg;
+amr_msgs__msg__DshotCommand dshot_msg;
 std_msgs__msg__Bool dshot_tune_set_raw_msg;
 std_msgs__msg__Int32 dshot_tune_p_gain_msg;
 std_msgs__msg__Int32 dshot_tune_i_gain_msg;
@@ -88,7 +88,7 @@ static void killswitch_subscription_callback(const void *msgin) {
 }
 
 static void dshot_subscription_callback(const void *msgin) {
-    const riptide_msgs2__msg__DshotCommand *msg = (const riptide_msgs2__msg__DshotCommand *) msgin;
+    const amr_msgs__msg__DshotCommand *msg = (const amr_msgs__msg__DshotCommand *) msgin;
     extern uint8_t esc_board_num;
     uint offset = (esc_board_num == 1 ? 4 : 0);
     core1_update_target_rpm(&msg->values[offset]);
@@ -126,7 +126,7 @@ static void dshot_tune_min_command_subscription_callback(const void *msgin) {
 }
 
 rcl_ret_t ros_update_firmware_status(uint8_t client_id) {
-    riptide_msgs2__msg__FirmwareStatus status_msg;
+    amr_msgs__msg__FirmwareStatus status_msg;
     status_msg.board_name.data = PICO_BOARD;
     status_msg.board_name.size = strlen(PICO_BOARD);
     status_msg.board_name.capacity = status_msg.board_name.size + 1;  // includes NULL byte
@@ -186,8 +186,8 @@ rcl_ret_t ros_heartbeat_pulse(uint8_t client_id) {
 }
 
 rcl_ret_t ros_send_rpm(uint8_t board_id) {
-    riptide_msgs2__msg__DshotRPMFeedback rpm_msg = { 0 };
-    riptide_msgs2__msg__DshotRPMFeedback cmd_msg = { 0 };
+    amr_msgs__msg__DshotRPMFeedback rpm_msg = { 0 };
+    amr_msgs__msg__DshotRPMFeedback cmd_msg = { 0 };
     uint8_t valid_mask = 0;
     uint thruster_base = (board_id == 0 ? 0 : 4);
 
@@ -213,7 +213,7 @@ rcl_ret_t ros_send_rpm(uint8_t board_id) {
 }
 
 rcl_ret_t ros_send_telemetry(uint8_t board_id) {
-    riptide_msgs2__msg__DshotPartialTelemetry telem_msg;
+    amr_msgs__msg__DshotPartialTelemetry telem_msg;
 
     // Capture the telemetry from core1
     struct core1_telem core1_telem_data;
@@ -285,25 +285,25 @@ rcl_ret_t ros_init(uint8_t board_id) {
                                            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int8), HEARTBEAT_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_default(&firmware_status_publisher, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, FirmwareStatus),
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, FirmwareStatus),
                                            FIRMWARE_STATUS_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_subscription_init_best_effort(
         &killswtich_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool), KILLSWITCH_SUBCRIBER_NAME));
 
     RCRETCHECK(rclc_subscription_init_best_effort(&dshot_subscriber, &node,
-                                                  ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, DshotCommand),
+                                                  ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, DshotCommand),
                                                   DSHOT_COMMAND_SUCRIBER_NAME));
 
     RCRETCHECK(rclc_publisher_init_best_effort(&dshot_rpm_publisher, &node,
-                                               ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, DshotRPMFeedback),
+                                               ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, DshotRPMFeedback),
                                                DSHOT_RPM_PUBLISHER_NAME));
     RCRETCHECK(rclc_publisher_init_best_effort(&dshot_cmd_publisher, &node,
-                                               ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, DshotRPMFeedback),
+                                               ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, DshotRPMFeedback),
                                                DSHOT_CMD_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_best_effort(&dshot_telem_publisher, &node,
-                                               ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, DshotPartialTelemetry),
+                                               ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, DshotPartialTelemetry),
                                                DSHOT_TELEMETRY_PUBLISHER_NAME));
 
     // Dshot tuning subscribers

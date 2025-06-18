@@ -25,7 +25,7 @@
 
 #define UROS_CONNECT_PING_TIME_MS 1000
 #define HEARTBEAT_TIME_MS 100
-#define FIRMWARE_STATUS_TIME_MS 1000
+#define FIRMWARE_STATUS_TIME_MS 10
 #define LED_UPTIME_INTERVAL_MS 250
 
 // Initialize all to nil time
@@ -184,6 +184,8 @@ int main() {
     transport_usb_init();
 #endif
 
+    absolute_time_t currentTime = get_absolute_time();
+
     // Enter main loop
     // This is split into two sections of timers
     // Those running with ROS, and those in the background
@@ -191,6 +193,15 @@ int main() {
     //   20ms of time worst case before the watchdog fires (as the ROS timeout is 30ms)
     // Meaning, don't block, either poll it in the background task or send it to an interrupt
     bool ros_initialized = false;
+
+    uint64_t previous = to_ms_since_boot(currentTime);
+
+    const uint LED_PIN = 25;  // Define the pin number for the built-in LED
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+
+    bool toggle = true;
+
     while (true) {
         // Do background tasks
         tick_background_tasks();
@@ -231,6 +242,16 @@ int main() {
                 ros_ping();
                 next_connect_ping = make_timeout_time_ms(UROS_CONNECT_PING_TIME_MS);
             }
+        }
+
+        currentTime = get_absolute_time();
+        uint64_t milliseconds = to_ms_since_boot(currentTime);
+
+        if (previous + 1000 < milliseconds) {
+            previous = milliseconds;
+
+            gpio_put(LED_PIN, toggle);
+            toggle = !toggle;
         }
 
         // Tick safety

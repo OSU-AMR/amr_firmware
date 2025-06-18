@@ -154,19 +154,19 @@ uint8_t dropper_get_state(void) {
     hard_assert_if(ACTUATORS, !actuators_initialized);
 
     if (!torpedo_marker_state->connected || !torpedo_marker_state->homed || torpedo_marker_state->hardware_err) {
-        return riptide_msgs2__msg__ActuatorStatus__DROPPER_ERROR;
+        return amr_msgs__msg__ActuatorStatus__DROPPER_ERROR;
     }
     else if (!torpedo_marker_state->enabled || !actuators_armed) {
-        return riptide_msgs2__msg__ActuatorStatus__DROPPER_DISARMED;
+        return amr_msgs__msg__ActuatorStatus__DROPPER_DISARMED;
     }
     else if (torpedo_marker_state->move_active) {
-        return riptide_msgs2__msg__ActuatorStatus__DROPPER_DROPPING;
+        return amr_msgs__msg__ActuatorStatus__DROPPER_DROPPING;
     }
     else if (dropper_next_index == 2) {
-        return riptide_msgs2__msg__ActuatorStatus__DROPPER_DROPPED;
+        return amr_msgs__msg__ActuatorStatus__DROPPER_DROPPED;
     }
     else {
-        return riptide_msgs2__msg__ActuatorStatus__DROPPER_READY;
+        return amr_msgs__msg__ActuatorStatus__DROPPER_READY;
     }
 }
 
@@ -222,19 +222,19 @@ uint8_t torpedo_get_state(void) {
     hard_assert_if(ACTUATORS, !actuators_initialized);
 
     if (!torpedo_marker_state->connected || !torpedo_marker_state->homed || torpedo_marker_state->hardware_err) {
-        return riptide_msgs2__msg__ActuatorStatus__TORPEDO_ERROR;
+        return amr_msgs__msg__ActuatorStatus__TORPEDO_ERROR;
     }
     else if (!torpedo_marker_state->enabled) {
-        return riptide_msgs2__msg__ActuatorStatus__TORPEDO_DISARMED;
+        return amr_msgs__msg__ActuatorStatus__TORPEDO_DISARMED;
     }
     else if (torpedo_marker_state->move_active) {
-        return riptide_msgs2__msg__ActuatorStatus__TORPEDO_FIRING;
+        return amr_msgs__msg__ActuatorStatus__TORPEDO_FIRING;
     }
     else if (torpedo_next_index == 2) {
-        return riptide_msgs2__msg__ActuatorStatus__TORPEDO_FIRED;
+        return amr_msgs__msg__ActuatorStatus__TORPEDO_FIRED;
     }
     else {
-        return riptide_msgs2__msg__ActuatorStatus__TORPEDO_CHARGED;
+        return amr_msgs__msg__ActuatorStatus__TORPEDO_CHARGED;
     }
 }
 

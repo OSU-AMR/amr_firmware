@@ -6,7 +6,7 @@
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"
 
-#include <riptide_msgs2/msg/kill_switch_report.h>
+#include <amr_msgs/msg/kill_switch_report.h>
 
 #include <assert.h>
 
@@ -16,7 +16,7 @@ static bool prev_kill_state = false;
 static inline void safety_interface_refresh_physical_kill_switch(void) {
     // read the external switches
     bool kill_state = gpio_get(KILL_SW_SENSE);
-    safety_kill_switch_update(riptide_msgs2__msg__KillSwitchReport__KILL_SWITCH_PHYSICAL, kill_state, true);
+    safety_kill_switch_update(amr_msgs__msg__KillSwitchReport__KILL_SWITCH_PHYSICAL, kill_state, true);
     dshot_notify_physical_kill_switch_change(kill_state);
 }
 
@@ -81,8 +81,8 @@ void safety_interface_deinit(void) {}
 
 // Define the kill switch variables used by core safety
 // These are pulled from the riptide msg definitions
-struct kill_switch_state kill_switch_states[riptide_msgs2__msg__KillSwitchReport__NUM_KILL_SWITCHES] = {
-    [0 ... riptide_msgs2__msg__KillSwitchReport__NUM_KILL_SWITCHES - 1] = { .enabled = false }
+struct kill_switch_state kill_switch_states[amr_msgs__msg__KillSwitchReport__NUM_KILL_SWITCHES] = {
+    [0 ... amr_msgs__msg__KillSwitchReport__NUM_KILL_SWITCHES - 1] = { .enabled = false }
 };
 const int num_kill_switches = sizeof(kill_switch_states) / sizeof(*kill_switch_states);
 static_assert(sizeof(kill_switch_states) / sizeof(*kill_switch_states) <= 32, "Too many kill switches defined");

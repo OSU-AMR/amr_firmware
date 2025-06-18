@@ -12,10 +12,10 @@
 #include <rclc/executor.h>
 #include <rclc/rclc.h>
 #include <rmw_microros/rmw_microros.h>
-#include <riptide_msgs2/msg/depth.h>
-#include <riptide_msgs2/msg/electrical_command.h>
-#include <riptide_msgs2/msg/firmware_status.h>
-#include <riptide_msgs2/msg/led_command.h>
+#include <amr_msgs/msg/depth.h>
+#include <amr_msgs/msg/electrical_command.h>
+#include <amr_msgs/msg/firmware_status.h>
+#include <amr_msgs/msg/led_command.h>
 #include <std_msgs/msg/bool.h>
 #include <std_msgs/msg/float32.h>
 #include <std_msgs/msg/int8.h>
@@ -61,16 +61,16 @@ rcl_publisher_t humidity_status_publisher;
 
 // Electrical System
 rcl_subscription_t led_subscriber;
-riptide_msgs2__msg__LedCommand led_command_msg;
+amr_msgs__msg__LedCommand led_command_msg;
 rcl_subscription_t physkill_notify_subscriber;
 std_msgs__msg__Bool physkill_notify_msg;
 rcl_subscription_t elec_command_subscriber;
-riptide_msgs2__msg__ElectricalCommand elec_command_msg;
+amr_msgs__msg__ElectricalCommand elec_command_msg;
 
 // Depth Sensor
 rcl_publisher_t depth_publisher;
 rcl_publisher_t water_temp_publisher;
-riptide_msgs2__msg__Depth depth_msg;
+amr_msgs__msg__Depth depth_msg;
 char depth_frame[] = ROBOT_NAMESPACE "/pressure_link";
 const float depth_variance = 0.003;
 
@@ -89,10 +89,10 @@ static void killswitch_subscription_callback(const void *msgin) {
 }
 
 static void led_subscription_callback(const void *msgin) {
-    const riptide_msgs2__msg__LedCommand *msg = (const riptide_msgs2__msg__LedCommand *) msgin;
+    const amr_msgs__msg__LedCommand *msg = (const amr_msgs__msg__LedCommand *) msgin;
 
     // Ignore commands not for us
-    if ((msg->target & riptide_msgs2__msg__LedCommand__TARGET_CCB) == 0) {
+    if ((msg->target & amr_msgs__msg__LedCommand__TARGET_CCB) == 0) {
         return;
     }
 
@@ -100,16 +100,16 @@ static void led_subscription_callback(const void *msgin) {
 
     // Convert message mode to local mode
     switch (msg->mode) {
-    case riptide_msgs2__msg__LedCommand__MODE_SOLID:
+    case amr_msgs__msg__LedCommand__MODE_SOLID:
         mode = STATUS_STRIP_MODE_SOLID;
         break;
-    case riptide_msgs2__msg__LedCommand__MODE_SLOW_FLASH:
+    case amr_msgs__msg__LedCommand__MODE_SLOW_FLASH:
         mode = STATUS_STRIP_MODE_SLOW_FLASH;
         break;
-    case riptide_msgs2__msg__LedCommand__MODE_FAST_FLASH:
+    case amr_msgs__msg__LedCommand__MODE_FAST_FLASH:
         mode = STATUS_STRIP_MODE_FAST_FLASH;
         break;
-    case riptide_msgs2__msg__LedCommand__MODE_BREATH:
+    case amr_msgs__msg__LedCommand__MODE_BREATH:
         mode = STATUS_STRIP_MODE_BREATH;
         break;
     default:
@@ -154,8 +154,8 @@ static int64_t set_computer_power(__unused alarm_id_t alarm, __unused void *data
 }
 
 static void elec_command_subscription_callback(const void *msgin) {
-    const riptide_msgs2__msg__ElectricalCommand *msg = (const riptide_msgs2__msg__ElectricalCommand *) msgin;
-    if (msg->command == riptide_msgs2__msg__ElectricalCommand__CYCLE_COMPUTER) {
+    const amr_msgs__msg__ElectricalCommand *msg = (const amr_msgs__msg__ElectricalCommand *) msgin;
+    if (msg->command == amr_msgs__msg__ElectricalCommand__CYCLE_COMPUTER) {
         if (toggle_pwr_alarm_id != 0) {
             LOG_WARN("Attempting to request multiple cycles in a row");
             safety_raise_fault(FAULT_ROS_BAD_COMMAND);
@@ -170,19 +170,19 @@ static void elec_command_subscription_callback(const void *msgin) {
             }
         }
     }
-    else if (msg->command == riptide_msgs2__msg__ElectricalCommand__ENABLE_FANS) {
+    else if (msg->command == amr_msgs__msg__ElectricalCommand__ENABLE_FANS) {
         gpio_put(FAN_SW_PIN, true);
     }
-    else if (msg->command == riptide_msgs2__msg__ElectricalCommand__DISABLE_FANS) {
+    else if (msg->command == amr_msgs__msg__ElectricalCommand__DISABLE_FANS) {
         gpio_put(FAN_SW_PIN, false);
     }
-    else if (msg->command == riptide_msgs2__msg__ElectricalCommand__ENABLE_LEDS) {
+    else if (msg->command == amr_msgs__msg__ElectricalCommand__ENABLE_LEDS) {
         status_strip_enable();
     }
-    else if (msg->command == riptide_msgs2__msg__ElectricalCommand__DISABLE_LEDS) {
+    else if (msg->command == amr_msgs__msg__ElectricalCommand__DISABLE_LEDS) {
         status_strip_disable();
     }
-    else if (msg->command == riptide_msgs2__msg__ElectricalCommand__CLEAR_DEPTH) {
+    else if (msg->command == amr_msgs__msg__ElectricalCommand__CLEAR_DEPTH) {
         depth_recalibrate();
     }
 }
@@ -192,7 +192,7 @@ static void elec_command_subscription_callback(const void *msgin) {
 // ========================================
 
 rcl_ret_t ros_update_firmware_status(uint8_t client_id) {
-    riptide_msgs2__msg__FirmwareStatus status_msg;
+    amr_msgs__msg__FirmwareStatus status_msg;
     status_msg.board_name.data = PICO_BOARD;
     status_msg.board_name.size = strlen(PICO_BOARD);
     status_msg.board_name.capacity = status_msg.board_name.size + 1;  // includes NULL byte
@@ -320,13 +320,13 @@ rcl_ret_t ros_init() {
                                            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int8), HEARTBEAT_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_default(&firmware_status_publisher, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, FirmwareStatus),
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, FirmwareStatus),
                                            FIRMWARE_STATUS_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_subscription_init_best_effort(
         &killswtich_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool), KILLSWITCH_SUBCRIBER_NAME));
 
-    RCRETCHECK(rclc_publisher_init(&depth_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, Depth),
+    RCRETCHECK(rclc_publisher_init(&depth_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, Depth),
                                    DEPTH_PUBLISHER_NAME, &rmw_qos_profile_sensor_data));
 
     RCRETCHECK(rclc_publisher_init(&water_temp_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
@@ -341,14 +341,14 @@ rcl_ret_t ros_init() {
                                                HUMIDITY_STATUS_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_subscription_init_default(
-        &led_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, LedCommand), LED_SUBSCRIBER_NAME));
+        &led_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, LedCommand), LED_SUBSCRIBER_NAME));
 
     RCRETCHECK(rclc_subscription_init_default(&physkill_notify_subscriber, &node,
                                               ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
                                               PHYSICAL_KILL_NOTIFY_SUBSCRIBER_NAME));
 
     RCRETCHECK(rclc_subscription_init_default(&elec_command_subscriber, &node,
-                                              ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, ElectricalCommand),
+                                              ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, ElectricalCommand),
                                               ELECTRICAL_COMMAND_SUBSCRIBER_NAME));
 
     RCRETCHECK(rclc_publisher_init_default(&leak_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),

@@ -308,19 +308,19 @@ uint8_t torpedo_get_state(void) {
 
     // Handle individual torpedo state
     if (!torpedo_timings_valid) {
-        return riptide_msgs2__msg__ActuatorStatus__TORPEDO_ERROR;
+        return amr_msgs__msg__ActuatorStatus__TORPEDO_ERROR;
     }
     else if (!actuators_armed) {
-        return riptide_msgs2__msg__ActuatorStatus__TORPEDO_DISARMED;
+        return amr_msgs__msg__ActuatorStatus__TORPEDO_DISARMED;
     }
     else if (torpedo_firing) {
-        return riptide_msgs2__msg__ActuatorStatus__TORPEDO_FIRING;
+        return amr_msgs__msg__ActuatorStatus__TORPEDO_FIRING;
     }
     else if (torpedo_check_charged()) {
-        return riptide_msgs2__msg__ActuatorStatus__TORPEDO_CHARGED;
+        return amr_msgs__msg__ActuatorStatus__TORPEDO_CHARGED;
     }
     else {
-        return riptide_msgs2__msg__ActuatorStatus__TORPEDO_CHARGING;
+        return amr_msgs__msg__ActuatorStatus__TORPEDO_CHARGING;
     }
     // TODO: Add error on charge timeout
 }

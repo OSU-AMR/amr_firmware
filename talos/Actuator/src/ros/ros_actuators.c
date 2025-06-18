@@ -5,7 +5,7 @@
 #include <rcl/rcl.h>
 #include <rclc/executor.h>
 #include <rclc/rclc.h>
-#include <riptide_msgs2/msg/actuator_status.h>
+#include <amr_msgs/msg/actuator_status.h>
 #include <std_msgs/msg/bool.h>
 #include <std_srvs/srv/set_bool.h>
 #include <std_srvs/srv/trigger.h>
@@ -43,7 +43,7 @@ rcl_ret_t ros_actuators_update_status(void) {
     std_msgs__msg__Bool busy_msg = { .data = actuators_get_busy() };
     RCRETCHECK(rcl_publish(&busy_publisher, &busy_msg, NULL));
 
-    riptide_msgs2__msg__ActuatorStatus status_msg;
+    amr_msgs__msg__ActuatorStatus status_msg;
     status_msg.actuators_armed = actuators_armed;
     status_msg.claw_state = claw_get_state();
     status_msg.torpedo_state = torpedo_get_state();
@@ -191,7 +191,7 @@ rcl_ret_t ros_actuators_init(rclc_executor_t *executor, rcl_node_t *node) {
     RCRETCHECK(rclc_publisher_init_best_effort(&busy_publisher, node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
                                                BUSY_TOPIC_NAME));
     RCRETCHECK(rclc_publisher_init_best_effort(
-        &status_publisher, node, ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, ActuatorStatus), STATUS_TOPIC_NAME));
+        &status_publisher, node, ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, ActuatorStatus), STATUS_TOPIC_NAME));
 
     return RCL_RET_OK;
 }

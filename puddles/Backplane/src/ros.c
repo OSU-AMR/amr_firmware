@@ -15,13 +15,13 @@
 #include <rclc/executor.h>
 #include <rclc/rclc.h>
 #include <rmw_microros/rmw_microros.h>
-#include <riptide_msgs2/msg/depth.h>
-#include <riptide_msgs2/msg/dshot_command.h>
-#include <riptide_msgs2/msg/dshot_rpm_feedback.h>
-#include <riptide_msgs2/msg/electrical_command.h>
-#include <riptide_msgs2/msg/electrical_readings.h>
-#include <riptide_msgs2/msg/firmware_status.h>
-#include <riptide_msgs2/msg/kill_switch_report.h>
+#include <amr_msgs/msg/depth.h>
+#include <amr_msgs/msg/dshot_command.h>
+#include <amr_msgs/msg/dshot_rpm_feedback.h>
+#include <amr_msgs/msg/electrical_command.h>
+#include <amr_msgs/msg/electrical_readings.h>
+#include <amr_msgs/msg/firmware_status.h>
+#include <amr_msgs/msg/kill_switch_report.h>
 #include <std_msgs/msg/bool.h>
 #include <std_msgs/msg/float32.h>
 #include <std_msgs/msg/int8.h>
@@ -68,35 +68,35 @@ rcl_publisher_t firmware_status_publisher;
 // Dshot publishers
 rcl_publisher_t dshot_rpm_publisher;
 rcl_subscription_t dshot_subscriber;
-riptide_msgs2__msg__DshotCommand dshot_msg;
+amr_msgs__msg__DshotCommand dshot_msg;
 
 // Physical kill switch
 rcl_publisher_t killswitch_publisher;
 rcl_subscription_t software_kill_subscriber;
-riptide_msgs2__msg__KillSwitchReport software_kill_msg;
+amr_msgs__msg__KillSwitchReport software_kill_msg;
 char software_kill_frame_str[SAFETY_SOFTWARE_KILL_FRAME_STR_SIZE + 1] = { 0 };
 
 // Depth Sensor
 rcl_publisher_t depth_publisher;
 rcl_publisher_t water_temp_publisher;
-riptide_msgs2__msg__Depth depth_msg;
+amr_msgs__msg__Depth depth_msg;
 char depth_frame[] = ROBOT_NAMESPACE "/pressure_link";
 const float depth_variance = 0.003;
 
 // Voltage ADC
 rcl_publisher_t adc_publisher;
-riptide_msgs2__msg__ElectricalReadings status_msg = { 0 };
+amr_msgs__msg__ElectricalReadings status_msg = { 0 };
 
 // Electrical Commands
 rcl_subscription_t elec_command_subscriber;
-riptide_msgs2__msg__ElectricalCommand elec_command_msg;
+amr_msgs__msg__ElectricalCommand elec_command_msg;
 
 // ========================================
 // Executor Callbacks
 // ========================================
 
 static void dshot_subscription_callback(const void *msgin) {
-    const riptide_msgs2__msg__DshotCommand *msg = (const riptide_msgs2__msg__DshotCommand *) msgin;
+    const amr_msgs__msg__DshotCommand *msg = (const amr_msgs__msg__DshotCommand *) msgin;
     dshot_update_thrusters(msg->values);
     dshot_command_received = true;
 }
@@ -131,8 +131,8 @@ static int64_t set_computer_power(__unused alarm_id_t alarm, void *data) {
 }
 
 static void elec_command_subscription_callback(const void *msgin) {
-    const riptide_msgs2__msg__ElectricalCommand *msg = (const riptide_msgs2__msg__ElectricalCommand *) msgin;
-    if (msg->command == riptide_msgs2__msg__ElectricalCommand__CYCLE_COMPUTER) {
+    const amr_msgs__msg__ElectricalCommand *msg = (const amr_msgs__msg__ElectricalCommand *) msgin;
+    if (msg->command == amr_msgs__msg__ElectricalCommand__CYCLE_COMPUTER) {
         // turn off the computer (it will reschedule itself to turn back on)
         if (toggle_cpu_pwr_alarm_id != 0) {
             LOG_WARN("Attempting to request multiple cycles in a row");
@@ -147,7 +147,7 @@ static void elec_command_subscription_callback(const void *msgin) {
             }
         }
     }
-    else if (msg->command == riptide_msgs2__msg__ElectricalCommand__CYCLE_ACCOUSTICS) {
+    else if (msg->command == amr_msgs__msg__ElectricalCommand__CYCLE_ACCOUSTICS) {
         // turn off the accoustics
         if (toggle_acc_pwr_alarm_id != 0) {
             LOG_WARN("Attempting to request multiple cycles in a row");
@@ -162,17 +162,17 @@ static void elec_command_subscription_callback(const void *msgin) {
             }
         }
     }
-    else if (msg->command == riptide_msgs2__msg__ElectricalCommand__CLEAR_DEPTH) {
+    else if (msg->command == amr_msgs__msg__ElectricalCommand__CLEAR_DEPTH) {
         depth_recalibrate();
     }
 }
 
 static void software_kill_subscription_callback(const void *msgin) {
-    const riptide_msgs2__msg__KillSwitchReport *msg = (const riptide_msgs2__msg__KillSwitchReport *) msgin;
+    const amr_msgs__msg__KillSwitchReport *msg = (const amr_msgs__msg__KillSwitchReport *) msgin;
 
     // Make sure kill switch id is valid
-    if (msg->kill_switch_id >= riptide_msgs2__msg__KillSwitchReport__NUM_KILL_SWITCHES ||
-        msg->kill_switch_id == riptide_msgs2__msg__KillSwitchReport__KILL_SWITCH_PHYSICAL) {
+    if (msg->kill_switch_id >= amr_msgs__msg__KillSwitchReport__NUM_KILL_SWITCHES ||
+        msg->kill_switch_id == amr_msgs__msg__KillSwitchReport__KILL_SWITCH_PHYSICAL) {
         LOG_WARN("Invalid kill switch id used %d", msg->kill_switch_id);
         safety_raise_fault_with_arg(FAULT_ROS_BAD_COMMAND, msg->kill_switch_id);
         return;
@@ -214,7 +214,7 @@ static void software_kill_subscription_callback(const void *msgin) {
 // ========================================
 
 rcl_ret_t ros_update_firmware_status(uint8_t client_id) {
-    riptide_msgs2__msg__FirmwareStatus status_msg;
+    amr_msgs__msg__FirmwareStatus status_msg;
     status_msg.board_name.data = PICO_BOARD;
     status_msg.board_name.size = strlen(PICO_BOARD);
     status_msg.board_name.capacity = status_msg.board_name.size + 1;  // includes NULL byte
@@ -230,7 +230,7 @@ rcl_ret_t ros_update_firmware_status(uint8_t client_id) {
     status_msg.kill_switches_needs_update = 0;
     status_msg.kill_switches_timed_out = 0;
 
-    for (int i = 0; i < riptide_msgs2__msg__KillSwitchReport__NUM_KILL_SWITCHES; i++) {
+    for (int i = 0; i < amr_msgs__msg__KillSwitchReport__NUM_KILL_SWITCHES; i++) {
         if (kill_switch_states[i].enabled) {
             status_msg.kill_switches_enabled |= (1 << i);
         }
@@ -308,7 +308,7 @@ rcl_ret_t ros_heartbeat_pulse(uint8_t client_id) {
 }
 
 rcl_ret_t ros_send_rpm(void) {
-    riptide_msgs2__msg__DshotRPMFeedback rpm_msg;
+    amr_msgs__msg__DshotRPMFeedback rpm_msg;
     uint8_t valid_mask = 0;
 
     for (int i = 0; i < NUM_THRUSTERS; i++) {
@@ -395,36 +395,35 @@ rcl_ret_t ros_init() {
                                            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int8), HEARTBEAT_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_default(&firmware_status_publisher, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, FirmwareStatus),
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, FirmwareStatus),
                                            FIRMWARE_STATUS_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_best_effort(
         &killswitch_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool), KILLSWITCH_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_subscription_init_best_effort(&dshot_subscriber, &node,
-                                                  ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, DshotCommand),
+                                                  ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, DshotCommand),
                                                   DSHOT_COMMAND_SUCRIBER_NAME));
 
     RCRETCHECK(rclc_publisher_init_best_effort(&dshot_rpm_publisher, &node,
-                                               ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, DshotRPMFeedback),
+                                               ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, DshotRPMFeedback),
                                                DSHOT_RPM_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_subscription_init_best_effort(&software_kill_subscriber, &node,
-                                                  ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, KillSwitchReport),
+                                                  ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, KillSwitchReport),
                                                   SOFTWARE_KILL_PUBLISHER_NAME));
 
-    RCRETCHECK(rclc_publisher_init_default(&adc_publisher, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, ElectricalReadings),
-                                           ADC_PUBLISHER_NAME));
+    RCRETCHECK(rclc_publisher_init_default(
+        &adc_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, ElectricalReadings), ADC_PUBLISHER_NAME));
 
-    RCRETCHECK(rclc_publisher_init(&depth_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, Depth),
+    RCRETCHECK(rclc_publisher_init(&depth_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, Depth),
                                    DEPTH_PUBLISHER_NAME, &rmw_qos_profile_sensor_data));
 
     RCRETCHECK(rclc_publisher_init(&water_temp_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
                                    WATER_TEMP_PUBLISHER_NAME, &rmw_qos_profile_sensor_data));
 
     RCRETCHECK(rclc_subscription_init_default(&elec_command_subscriber, &node,
-                                              ROSIDL_GET_MSG_TYPE_SUPPORT(riptide_msgs2, msg, ElectricalCommand),
+                                              ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, ElectricalCommand),
                                               ELECTRICAL_COMMAND_SUBSCRIBER_NAME));
 
     // Executor Initialization
