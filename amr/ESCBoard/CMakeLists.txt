@@ -21,33 +21,33 @@ include(${REPO_DIR}/global_defs.cmake)
 
 # Define Project
 # TODO: Rename project and executable to your project name
-project(template_project C CXX ASM)
+project(esc_board C CXX ASM)
 titan_firmware_init()
 
 # Define executable
 file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.c")
-add_executable(template_project
+add_executable(esc_board
     ${SOURCES}
 )
-target_include_directories(template_project PUBLIC include)
+target_include_directories(esc_board PUBLIC include)
 
 # Required so we can register our own gpio interrupt for the encoders (only one gpio interrupt supported)
-target_compile_definitions(template_project PUBLIC CAN_MCP251XFD_USE_EXTERNAL_INTERRUPT_CB=1)
+target_compile_definitions(esc_board PUBLIC CAN_MCP251XFD_USE_EXTERNAL_INTERRUPT_CB=1)
 
 # Set version: major minor (see titan/version.h for more info)
-titan_generate_version_tag(template_project 1 0)
+titan_generate_version_tag(esc_board 1 0)
 
 # Configure pico-sdk
-pico_enable_stdio_uart(template_project 1)
-pico_set_program_name(template_project "Template Project")  # TODO: Set the project name
+pico_enable_stdio_uart(esc_board 1)
+pico_set_program_name(esc_board "Template Project")  # TODO: Set the project name
 
 # Enable the 'make upload' and 'make info' commands for project
-titan_use_upload_tool(template_project)
-titan_enable_bootloader(template_project can)  # TODO: Select the same transport as below, or remove this line if using USB
+titan_use_upload_tool(esc_board)
+titan_enable_bootloader(esc_board can)  # TODO: Select the same transport as below, or remove this line if using USB
 
 # Define linking and targets
-pico_add_extra_outputs(template_project)
-target_link_libraries(template_project PUBLIC
+pico_add_extra_outputs(esc_board)
+target_link_libraries(esc_board PUBLIC
     pico_stdlib     # Pico SDK Standard Library
     driver_led      # Status LED support
     # TODO: Select your transport:
