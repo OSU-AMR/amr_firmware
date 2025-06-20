@@ -33,7 +33,7 @@
 #define FIRMWARE_STATUS_TIME_MS 1000
 #define LED_UPTIME_INTERVAL_MS 250
 #define CONTROLLER_PERIOD_MS 10  // This frequency will cause us to miss some timer ticks, but that's ok for now
-#define IR_UPDATE_PERIOD_MS 100
+#define IR_UPDATE_PERIOD_MS 20
 #define ENCODER_UPDATE_PERIOD_MS 100
 
 // Initialize all to nil time

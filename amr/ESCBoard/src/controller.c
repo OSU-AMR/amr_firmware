@@ -16,12 +16,12 @@
 #define MINIMUM_DESIGN_VEL_FIXEDPT fixedpt_rconst(10.0f)
 #define FF_LINEAR_FIXEDPT fixedpt_rconst(1.0f / 20.0f)
 #define VOLTAGE_BASELINE_FIXEDPT fixedpt_rconst(1.5f)
-#define MAX_SLEW_RATE_FIXEDPT fixedpt_rconst(0.30f)
+#define MAX_SLEW_RATE_FIXEDPT fixedpt_rconst(100.0f)
 
 // Controller parameters
-#define ENCODER_FILTER_GAIN_FIXEDPT fixedpt_rconst(.01)
-#define MAX_SPEED_FIXEDPT fixedpt_rconst(130.0)  // rad / sec
-#define STARTUP_VOLTAGE_BOOST_FIXEDPT fixedpt_rconst(5.0)
+#define ENCODER_FILTER_GAIN_FIXEDPT fixedpt_rconst(.01f)
+#define MAX_SPEED_FIXEDPT fixedpt_rconst(130.0f)  // rad / sec
+#define STARTUP_VOLTAGE_BOOST_FIXEDPT fixedpt_rconst(5.0f)
 
 // Interface parameters
 #define RPS_MIN_UPDATE_RATE_MS 500
