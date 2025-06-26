@@ -31,6 +31,11 @@
             "serial": "E46211015B272331"
         },
         {
+            "name": "AMR Power Board 3",
+            "boardType": "amr/power_board",
+            "serial": "E46211015B242B31"
+        },
+        {
             "name": "AMR ESC Board 2",
             "boardType": "amr/esc_board",
             "serial": "E46211015B49252E"
