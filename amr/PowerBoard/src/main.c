@@ -32,6 +32,9 @@
 #define RFID_POLL_PERIOD_MS 100
 #define BATTERY_VOLTAGE_PERIOD_MS 1000
 
+// This value is reasonably accurate for normal motor voltages
+#define BATTERY_VOLTAGE_OFFSET_V 0.4f
+
 // Initialize all to nil time
 // For background timers, they will fire immediately
 // For ros timers, they will be reset before being ticked by start_ros_timers
@@ -132,7 +135,7 @@ static void tick_ros_tasks() {
     if (timer_ready(&next_battery_update, BATTERY_VOLTAGE_PERIOD_MS, false)) {
         float vout = multiplexer_decode_analog(BATT_VOLT_MUX_NUM);
 
-        float vin = vout * (BATT_VOLT_R1 + BATT_VOLT_R2) / BATT_VOLT_R2;
+        float vin = vout * (BATT_VOLT_R1 + BATT_VOLT_R2) / BATT_VOLT_R2 + BATTERY_VOLTAGE_OFFSET_V;
         ros_publish_battery_voltage(vin);
     }
 }
