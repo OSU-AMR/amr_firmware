@@ -30,12 +30,12 @@ static void pulse_callback(uint gpio, uint32_t events) {
         curr_enc = encoders[i];
 
         if (gpio == curr_enc->PIN_A) {
-            curr_enc->pulse_counter += (curr_enc->a_state == curr_enc->b_state) ? 1 : -1 * curr_enc->inverted_mul;
+            curr_enc->pulse_counter += ((curr_enc->a_state == curr_enc->b_state) ? 1 : -1) * curr_enc->inverted_mul;
             curr_enc->a_state = events & 8;
             break;
         }
         else if (gpio == curr_enc->PIN_B) {
-            curr_enc->pulse_counter += (curr_enc->a_state != curr_enc->b_state) ? 1 : -1 * curr_enc->inverted_mul;
+            curr_enc->pulse_counter += ((curr_enc->a_state != curr_enc->b_state) ? 1 : -1) * curr_enc->inverted_mul;
             curr_enc->b_state = events & 8;
             break;
         }
