@@ -31,6 +31,11 @@ add_executable(template_project
 )
 target_include_directories(template_project PUBLIC include)
 
+# Apply the user-set robot namespace, if any
+if (DEFINED ROBOT_NAMESPACE)
+    add_compile_definitions(ROBOT_NAMESPACE="${ROBOT_NAMESPACE}")
+endif (DEFINED ROBOT_NAMESPACE)
+
 # Set version: major minor (see titan/version.h for more info)
 titan_generate_version_tag(template_project 1 0)
 

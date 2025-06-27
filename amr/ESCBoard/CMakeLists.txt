@@ -34,6 +34,11 @@ target_include_directories(esc_board PUBLIC include)
 # Required so we can register our own gpio interrupt for the encoders (only one gpio interrupt supported)
 target_compile_definitions(esc_board PUBLIC CAN_MCP251XFD_USE_EXTERNAL_INTERRUPT_CB=1)
 
+# Apply the user-set robot namespace, if any
+if (DEFINED ROBOT_NAMESPACE)
+    add_compile_definitions(ROBOT_NAMESPACE="${ROBOT_NAMESPACE}")
+endif (DEFINED ROBOT_NAMESPACE)
+
 # Set version: major minor (see titan/version.h for more info)
 titan_generate_version_tag(esc_board 1 0)
 
