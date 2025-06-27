@@ -94,10 +94,6 @@ void controller_tick() {
         voltage_limit[i] = MIN(voltage_limit[i], DRIVER_VOLTAGE_SUPPLY_FIXEDPT);
     }
 
-    // LOG_INFO("Got unclamped voltages as %f, %f", fixedpt_tofloat(voltage_limit[0]),
-    // fixedpt_tofloat(voltage_limit[1]));
-    // LOG_INFO("Got encoder vels as %f, %f", fixedpt_tofloat(vel_avg[0]), fixedpt_tofloat(vel_avg[1]));
-
     // Kill motor power immediately if we haven't gotten a new command in a while
     if (time_reached(rps_expiration)) {
         for (int i = 0; i < NUM_MOTORS; i++) {

@@ -12,6 +12,7 @@
 #include <rclc/executor.h>
 #include <rclc/rclc.h>
 #include <rmw_microros/rmw_microros.h>
+#include <amr_msgs/msg/encoder.h>
 #include <amr_msgs/msg/firmware_status.h>
 #include <std_msgs/msg/bool.h>
 #include <std_msgs/msg/float32.h>
@@ -32,6 +33,7 @@
 #define LEFT_IR_PUBLISHER_NAME "state/ir/left"
 #define RIGHT_IR_PUBLISHER_NAME "state/ir/right"
 #define BACK_IR_PUBLISHER_NAME "state/ir/back"
+#define ENCODER_PUBLISHER_NAME "state/encoder"
 
 bool ros_connected = false;
 
@@ -51,6 +53,8 @@ std_msgs__msg__Bool killswitch_msg;
 rcl_publisher_t left_ir_publisher;
 rcl_publisher_t right_ir_publisher;
 rcl_publisher_t back_ir_publisher;
+
+rcl_publisher_t encoder_publisher;
 
 // ========================================
 // Executor Callbacks
@@ -150,7 +154,28 @@ rcl_ret_t ros_publish_ir_sensors() {
     return RCL_RET_OK;
 }
 
+static inline void nanos_to_timespec(int64_t time_nanos, struct timespec *ts) {
+    ts->tv_sec = time_nanos / 1000000000;
+    ts->tv_nsec = time_nanos % 1000000000;
+}
+
 rcl_ret_t ros_publish_encoders() {
+    amr_msgs__msg__Encoder encoder_msg;
+    struct timespec ts;
+    nanos_to_timespec(rmw_uros_epoch_nanos(), &ts);
+    encoder_msg.stamp.sec = ts.tv_sec;
+    encoder_msg.stamp.nanosec = ts.tv_nsec;
+
+    const float *encoders_angle = controller_get_encoders_angle();
+    encoder_msg.left_angle = encoders_angle[0];
+    encoder_msg.right_angle = encoders_angle[1];
+
+    const float *encoders_vel = controller_get_encoders_vel();
+    encoder_msg.left_velocity = encoders_vel[0];
+    encoder_msg.right_velocity = encoders_vel[1];
+
+    RCSOFTRETCHECK(rcl_publish(&encoder_publisher, &encoder_msg, NULL));
+
     return RCL_RET_OK;
 }
 
@@ -182,6 +207,9 @@ rcl_ret_t ros_init() {
 
     RCRETCHECK(rclc_publisher_init_default(&back_ir_publisher, &node,
                                            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16), BACK_IR_PUBLISHER_NAME));
+
+    RCRETCHECK(rclc_publisher_init_default(
+        &encoder_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, Encoder), ENCODER_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_subscription_init_best_effort(
         &killswtich_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool), KILLSWITCH_SUBCRIBER_NAME));
@@ -215,6 +243,7 @@ void ros_fini(void) {
     RCSOFTCHECK(rcl_publisher_fini(&left_ir_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&right_ir_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&back_ir_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&encoder_publisher, &node));
     RCSOFTCHECK(rclc_executor_fini(&executor));
     RCSOFTCHECK(rcl_node_fini(&node));
     RCSOFTCHECK(rclc_support_fini(&support));
