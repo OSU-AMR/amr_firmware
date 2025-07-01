@@ -45,8 +45,8 @@ float encoder_angle[NUM_MOTORS];
 void controller_init() {
     core1_init();
 
-    encoder_init(&encoders[0], ENC0_A_PIN, ENC0_B_PIN, ENCODER_TPR, false);
-    encoder_init(&encoders[1], ENC1_A_PIN, ENC1_B_PIN, ENCODER_TPR, true);
+    encoder_init(&encoders[0], pio0, ENC0_A_PIN, ENCODER_TPR, true);
+    encoder_init(&encoders[1], pio0, ENC1_A_PIN, ENCODER_TPR, false);
 }
 
 void controller_tick() {

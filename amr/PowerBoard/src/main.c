@@ -32,7 +32,7 @@
 #define RFID_POLL_PERIOD_MS 100
 #define BATTERY_VOLTAGE_PERIOD_MS 1000
 
-// This value is reasonably accurate for normal motor voltages
+// This value is reasonably accurate for normal voltages
 #define BATTERY_VOLTAGE_OFFSET_V 0.4f
 
 // Initialize all to nil time

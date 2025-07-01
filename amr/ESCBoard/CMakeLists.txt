@@ -32,7 +32,7 @@ add_executable(esc_board
 target_include_directories(esc_board PUBLIC include)
 
 # Required so we can register our own gpio interrupt for the encoders (only one gpio interrupt supported)
-target_compile_definitions(esc_board PUBLIC CAN_MCP251XFD_USE_EXTERNAL_INTERRUPT_CB=1)
+# target_compile_definitions(esc_board PUBLIC CAN_MCP251XFD_USE_EXTERNAL_INTERRUPT_CB=1)
 
 # Apply the user-set robot namespace, if any
 if (DEFINED ROBOT_NAMESPACE)
