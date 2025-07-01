@@ -19,7 +19,8 @@
    limitations under the License.
 */
 
-#pragma once
+#ifndef QUAD_ENCODER_H
+#define QUAD_ENCODER_H
 
 #include <hardware/dma.h>
 #include <hardware/pio.h>
@@ -46,3 +47,5 @@ int32_t encoder_init(encoder *enc, PIO pio, uint8_t pinbase, uint tpr, bool inve
 
 float encoder_get_angle(encoder *enc);
 float encoder_get_velocity(encoder *enc);
+
+#endif  // QUAD_ENCODER_H
