@@ -3,6 +3,8 @@
 #include "controller.h"
 #include "ir.h"
 
+#include "driver/cd74hc4051.h"
+#include "driver/thermistor.h"
 #include "pico/stdlib.h"
 #include "titan/logger.h"
 #include "titan/version.h"
@@ -35,6 +37,11 @@
 #define BACK_IR_PUBLISHER_NAME "state/ir/back"
 #define ENCODER_PUBLISHER_NAME "state/encoder"
 
+#define MOT0_THERM_PUBLISHER_NAME "state/motor_left/temperature"
+#define MOT1_THERM_PUBLISHER_NAME "state/motor_right/temperature"
+#define ESC0_THERM_PUBLISHER_NAME "state/esc_left/temperature"
+#define ESC1_THERM_PUBLISHER_NAME "state/esc_right/temperature"
+
 bool ros_connected = false;
 
 // Core Variables
@@ -55,6 +62,11 @@ rcl_publisher_t right_ir_publisher;
 rcl_publisher_t back_ir_publisher;
 
 rcl_publisher_t encoder_publisher;
+
+rcl_publisher_t mot0_therm_publisher;
+rcl_publisher_t mot1_therm_publisher;
+rcl_publisher_t esc0_therm_publisher;
+rcl_publisher_t esc1_therm_publisher;
 
 // ========================================
 // Executor Callbacks
@@ -179,6 +191,22 @@ rcl_ret_t ros_publish_encoders() {
     return RCL_RET_OK;
 }
 
+rcl_ret_t ros_publish_thermistors() {
+    std_msgs__msg__Float32 mot0_msg, mot1_msg, esc0_msg, esc1_msg;
+
+    mot0_msg.data = thermistor_get_c(multiplexer_decode_analog(MOT0_THERM_MUX_NUM), THERMISTOR_PROFILE_CHASSIS);
+    mot1_msg.data = thermistor_get_c(multiplexer_decode_analog(MOT1_THERM_MUX_NUM), THERMISTOR_PROFILE_CHASSIS);
+    esc0_msg.data = thermistor_get_c(multiplexer_decode_analog(ESC0_THERM_MUX_NUM), THERMISTOR_PROFILE_BOARD);
+    esc1_msg.data = thermistor_get_c(multiplexer_decode_analog(ESC1_THERM_MUX_NUM), THERMISTOR_PROFILE_BOARD);
+
+    RCSOFTRETCHECK(rcl_publish(&mot0_therm_publisher, &mot0_msg, NULL));
+    RCSOFTRETCHECK(rcl_publish(&mot1_therm_publisher, &mot1_msg, NULL));
+    RCSOFTRETCHECK(rcl_publish(&esc0_therm_publisher, &esc0_msg, NULL));
+    RCSOFTRETCHECK(rcl_publish(&esc1_therm_publisher, &esc1_msg, NULL));
+
+    return RCL_RET_OK;
+}
+
 // TODO: Add in node specific tasks here
 
 // ========================================
@@ -207,6 +235,18 @@ rcl_ret_t ros_init() {
 
     RCRETCHECK(rclc_publisher_init_default(&back_ir_publisher, &node,
                                            ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16), BACK_IR_PUBLISHER_NAME));
+
+    RCRETCHECK(rclc_publisher_init_default(
+        &mot0_therm_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32), MOT0_THERM_PUBLISHER_NAME));
+
+    RCRETCHECK(rclc_publisher_init_default(
+        &mot1_therm_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32), MOT1_THERM_PUBLISHER_NAME));
+
+    RCRETCHECK(rclc_publisher_init_default(
+        &esc0_therm_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32), ESC0_THERM_PUBLISHER_NAME));
+
+    RCRETCHECK(rclc_publisher_init_default(
+        &esc1_therm_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32), ESC1_THERM_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_publisher_init_default(
         &encoder_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, Encoder), ENCODER_PUBLISHER_NAME));
@@ -244,6 +284,10 @@ void ros_fini(void) {
     RCSOFTCHECK(rcl_publisher_fini(&right_ir_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&back_ir_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&encoder_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&mot0_therm_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&mot1_therm_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&esc0_therm_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&esc1_therm_publisher, &node));
     RCSOFTCHECK(rclc_executor_fini(&executor));
     RCSOFTCHECK(rcl_node_fini(&node));
     RCSOFTCHECK(rclc_support_fini(&support));

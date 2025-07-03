@@ -5,6 +5,7 @@
 #include "safety_interface.h"
 
 #include "canmore/protocol.h"
+#include "driver/cd74hc4051.h"
 #include "driver/led.h"
 #include "pico/stdlib.h"
 #include "titan/debug.h"
@@ -36,6 +37,7 @@
 #define CONTROLLER_PERIOD_MS 10  // This frequency will cause us to miss some timer ticks, but that's ok for now
 #define IR_UPDATE_PERIOD_MS 20
 #define ENCODER_UPDATE_PERIOD_MS 20
+#define THERMISTOR_UPDATE_PERIOD_MS 1000
 
 // Initialize all to nil time
 // For background timers, they will fire immediately
@@ -47,6 +49,7 @@ absolute_time_t next_connect_ping = { 0 };
 absolute_time_t next_controller_update = { 0 };
 absolute_time_t next_ir_update = { 0 };
 absolute_time_t next_encoder_update = { 0 };
+absolute_time_t next_thermistor_update = { 0 };
 
 /**
  * @brief Check if a timer is ready. If so advance it to the next interval.
@@ -95,6 +98,7 @@ static void start_ros_timers() {
     next_status_update = make_timeout_time_ms(FIRMWARE_STATUS_TIME_MS);
     next_ir_update = make_timeout_time_ms(IR_UPDATE_PERIOD_MS);
     next_encoder_update = make_timeout_time_ms(ENCODER_UPDATE_PERIOD_MS);
+    next_thermistor_update = make_timeout_time_ms(THERMISTOR_UPDATE_PERIOD_MS);
 }
 
 /**
@@ -134,6 +138,10 @@ static void tick_ros_tasks() {
 
     if (timer_ready(&next_encoder_update, ENCODER_UPDATE_PERIOD_MS, false)) {
         RCSOFTRETVCHECK(ros_publish_encoders());
+    }
+
+    if (timer_ready(&next_thermistor_update, THERMISTOR_UPDATE_PERIOD_MS, false)) {
+        RCSOFTRETVCHECK(ros_publish_thermistors());
     }
 }
 
@@ -212,6 +220,7 @@ int main() {
     led_init();
     micro_ros_init_error_handling();
     // TODO: Put any additional hardware initialization code here
+    multiplexer_init(MP_DATA_PIN, MP_S0_PIN, MP_S1_PIN, MP_S2_PIN);
     controller_init();
 
     ir_init(IR0_PIN);

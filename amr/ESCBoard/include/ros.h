@@ -94,6 +94,8 @@ rcl_ret_t ros_publish_ir_sensors();
 
 rcl_ret_t ros_publish_encoders();
 
+rcl_ret_t ros_publish_thermistors();
+
 #undef MICRO_ROS_TRANSPORT_USB
 #define MICRO_ROS_TRANSPORT_CAN 1
 

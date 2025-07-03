@@ -44,4 +44,9 @@
 #define MOT0_OVERTEMP_PIN 5
 #define MOT1_OVERTEMP_PIN 6
 
+#define MOT0_THERM_MUX_NUM 6
+#define MOT1_THERM_MUX_NUM 3
+#define ESC0_THERM_MUX_NUM 7
+#define ESC1_THERM_MUX_NUM 4
+
 #endif

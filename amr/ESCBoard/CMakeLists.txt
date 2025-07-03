@@ -64,6 +64,8 @@ target_link_libraries(esc_board PUBLIC
     # TODO: Add any additional hardware here (ex. hardware_adc)
     driver_drv8313
     driver_encoder
+    driver_cd74hc4051
+    driver_thermistor
     hardware_adc
 )
 
