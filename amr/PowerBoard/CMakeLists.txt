@@ -61,5 +61,6 @@ target_link_libraries(power_board PUBLIC
     micro_ros_usb
     driver_mfrc522
     driver_cd74hc4051
+    driver_thermistor
 )
 

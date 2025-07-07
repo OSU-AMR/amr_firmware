@@ -136,7 +136,7 @@ static void tick_ros_tasks() {
         float vout = multiplexer_decode_analog(BATT_VOLT_MUX_NUM);
 
         float vin = vout * (BATT_VOLT_R1 + BATT_VOLT_R2) / BATT_VOLT_R2 + BATTERY_VOLTAGE_OFFSET_V;
-        ros_publish_battery_voltage(vin);
+        ros_publish_battery_state(vin);
     }
 }
 

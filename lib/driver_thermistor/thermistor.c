@@ -36,5 +36,5 @@ float thermistor_get_c(float voltage, thermistor_profile profile) {
 
     float resistance = ser_res * (voltage) / (vref - voltage);
 
-    return 1.0f / (log(resistance / r25) / b25_85 + 1.0f / nominal) - 273.0;
+    return 1.0f / (log(resistance / r25) / b25_85 + 1.0f / nominal) - 273.15;
 }

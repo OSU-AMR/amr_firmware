@@ -92,7 +92,7 @@ rcl_ret_t ros_update_firmware_status(uint8_t client_id);
 
 rcl_ret_t ros_publish_rfid(uint8_t bytes[], uint8_t size);
 
-rcl_ret_t ros_publish_battery_voltage(float voltage);
+rcl_ret_t ros_publish_battery_state(float voltage);
 
 // #undef MICRO_ROS_TRANSPORT_CAN
 // #define MICRO_ROS_TRANSPORT_USB 1
