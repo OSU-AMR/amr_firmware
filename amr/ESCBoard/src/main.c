@@ -34,10 +34,10 @@
 #define FIRMWARE_STATUS_TIME_MS 1000
 #define ROS_TIMESYNC_TIMEOUT_TIME_MS 10
 #define LED_UPTIME_INTERVAL_MS 250
-#define CONTROLLER_PERIOD_MS 10  // This frequency will cause us to miss some timer ticks, but that's ok for now
 #define IR_UPDATE_PERIOD_MS 20
 #define ENCODER_UPDATE_PERIOD_MS 20
 #define THERMISTOR_UPDATE_PERIOD_MS 1000
+// Controller period set in controller.h
 
 // Initialize all to nil time
 // For background timers, they will fire immediately

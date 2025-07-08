@@ -16,7 +16,8 @@
 #define MINIMUM_DESIGN_VEL_FIXEDPT fixedpt_rconst(10.0f)
 #define FF_LINEAR_FIXEDPT fixedpt_rconst(1.0f / 20.0f)
 #define VOLTAGE_BASELINE_FIXEDPT fixedpt_rconst(1.5f)
-#define MAX_SLEW_RATE_FIXEDPT fixedpt_rconst(100.0f)
+#define BRAKING_THRESHOLD_FIXEDPT fixedpt_rconst(0.1f)
+#define DEFAULT_SLEW_RATE_FIXEDPT fixedpt_rconst(100.0f)
 
 // Controller parameters
 #define ENCODER_FILTER_GAIN_FIXEDPT fixedpt_rconst(.01f)
@@ -35,6 +36,8 @@ fixedpt vel_avg[NUM_MOTORS];
 fixedpt target_velocity[NUM_MOTORS];
 fixedpt voltage_limit[NUM_MOTORS];
 fixedpt slewed_velocity[NUM_MOTORS];
+fixedpt braking_voltage[NUM_MOTORS] = { 0 };
+fixedpt max_slew;
 
 absolute_time_t rps_expiration = { 0 };
 
@@ -47,6 +50,8 @@ void controller_init() {
 
     encoder_init(&encoders[0], pio0, ENC0_A_PIN, ENCODER_TPR, true);
     encoder_init(&encoders[1], pio0, ENC1_A_PIN, ENCODER_TPR, false);
+
+    max_slew = DEFAULT_SLEW_RATE_FIXEDPT;
 }
 
 void controller_tick() {
@@ -60,11 +65,11 @@ void controller_tick() {
 
         // Slew target velocity
         fixedpt slew_error = target_velocity[i] - slewed_velocity[i];
-        if (fixedpt_abs(slew_error) < MAX_SLEW_RATE_FIXEDPT)
+        if (fixedpt_abs(slew_error) < max_slew)
             slewed_velocity[i] = target_velocity[i];
         else
-            slewed_velocity[i] += fixedpt_mul(MAX_SLEW_RATE_FIXEDPT,
-                                              (fixedpt_div(slew_error, fixedpt_abs(slew_error))));  // slew_error != 0
+            slewed_velocity[i] +=
+                fixedpt_mul(max_slew, (fixedpt_div(slew_error, fixedpt_abs(slew_error))));  // slew_error != 0
 
         // Clamp max velocity
         slewed_velocity[i] = MAX(MIN(MAX_SPEED_FIXEDPT, slewed_velocity[i]), -MAX_SPEED_FIXEDPT);
@@ -72,21 +77,25 @@ void controller_tick() {
         // Handle voltage regulation
         voltage_limit[i] = fixedpt_rconst(0.0f);
 
-        if (slewed_velocity[i] > fixedpt_rconst(0.1f))
+        if (slewed_velocity[i] > BRAKING_THRESHOLD_FIXEDPT)
             voltage_limit[i] =
                 fixedpt_mul(fixedpt_abs(slewed_velocity[i] - vel_avg[i]), KP_FIXEDPT) +
                 fixedpt_mul(fixedpt_abs(slewed_velocity[i] - MINIMUM_DESIGN_VEL_FIXEDPT), FF_LINEAR_FIXEDPT) +
                 VOLTAGE_BASELINE_FIXEDPT;
-        else if (slewed_velocity[i] < fixedpt_rconst(-0.1f)) {
+        else if (slewed_velocity[i] < -BRAKING_THRESHOLD_FIXEDPT) {
             voltage_limit[i] =
                 fixedpt_mul(fixedpt_abs(vel_avg[i] - slewed_velocity[i]), KP_FIXEDPT) +
                 fixedpt_mul(fixedpt_abs(slewed_velocity[i] - MINIMUM_DESIGN_VEL_FIXEDPT), FF_LINEAR_FIXEDPT) +
                 VOLTAGE_BASELINE_FIXEDPT;
         }
+        else {
+            // Motor is in braking mode, implement requested braking voltage
+            voltage_limit[i] = braking_voltage[i];
+        }
 
         // Startup voltage boost
         if (fixedpt_div(vel_avg[i], slewed_velocity[i]) < fixedpt_rconst(0.5f) &&
-            fixedpt_abs(slewed_velocity[i]) > fixedpt_rconst(0.1f)) {
+            fixedpt_abs(slewed_velocity[i]) > BRAKING_THRESHOLD_FIXEDPT) {
             voltage_limit[i] = voltage_limit[i] + STARTUP_VOLTAGE_BOOST_FIXEDPT;
         }
 
@@ -113,6 +122,14 @@ void controller_set_target(const float *rps) {
 
     // Set new timeout for command staling
     rps_expiration = make_timeout_time_ms(RPS_MIN_UPDATE_RATE_MS);
+}
+
+void controller_set_braking_voltage(const int index, const float voltage) {
+    braking_voltage[index] = fixedpt_rconst(voltage);
+}
+
+void controller_set_slew_rps2(const float slew_rps2) {
+    max_slew = fixedpt_mul(fixedpt_rconst(slew_rps2), fixedpt_rconst(CONTROLLER_PERIOD_MS / 1000.0f));
 }
 
 const float *controller_get_encoders_vel() {
