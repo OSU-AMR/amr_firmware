@@ -35,7 +35,7 @@ fixedpt vel_avg[NUM_MOTORS];
 
 fixedpt target_velocity[NUM_MOTORS];
 fixedpt voltage_limit[NUM_MOTORS];
-fixedpt slewed_velocity[NUM_MOTORS];
+fixedpt slewed_velocity[NUM_MOTORS] = { 0 };
 fixedpt braking_voltage[NUM_MOTORS] = { 0 };
 fixedpt max_slew;
 
