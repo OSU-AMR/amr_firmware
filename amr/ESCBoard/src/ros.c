@@ -253,14 +253,14 @@ rcl_ret_t ros_init() {
                                            ROSIDL_GET_MSG_TYPE_SUPPORT(amr_msgs, msg, FirmwareStatus),
                                            FIRMWARE_STATUS_PUBLISHER_NAME));
 
-    RCRETCHECK(rclc_publisher_init_default(&left_ir_publisher, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16), LEFT_IR_PUBLISHER_NAME));
+    RCRETCHECK(rclc_publisher_init(&left_ir_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16),
+                                   LEFT_IR_PUBLISHER_NAME, &rmw_qos_profile_sensor_data));
 
-    RCRETCHECK(rclc_publisher_init_default(
-        &right_ir_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16), RIGHT_IR_PUBLISHER_NAME));
+    RCRETCHECK(rclc_publisher_init(&right_ir_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16),
+                                   RIGHT_IR_PUBLISHER_NAME, &rmw_qos_profile_sensor_data));
 
-    RCRETCHECK(rclc_publisher_init_default(&back_ir_publisher, &node,
-                                           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16), BACK_IR_PUBLISHER_NAME));
+    RCRETCHECK(rclc_publisher_init(&back_ir_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt16),
+                                   BACK_IR_PUBLISHER_NAME, &rmw_qos_profile_sensor_data));
 
     RCRETCHECK(rclc_publisher_init_default(
         &mot0_therm_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32), MOT0_THERM_PUBLISHER_NAME));
