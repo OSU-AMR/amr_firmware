@@ -33,6 +33,9 @@
 #define BATTERY_VOLTAGE_PUBLISHER_NAME "state/battery/voltage"
 #define BATTERY_TEMP_PUBLISHER_NAME "state/battery/temperature"
 
+// TODO: Move RFID handling out of ros.c
+#define RFID_REFRESH_PERIOD_MS 1000
+
 bool ros_connected = false;
 
 // Core Variables
@@ -51,6 +54,7 @@ std_msgs__msg__Bool killswitch_msg;
 
 rcl_publisher_t rfid_publisher;
 uint8_t last_tag[MAX_UID_SIZE];
+absolute_time_t last_tag_pub_time = { 0 };
 
 rcl_publisher_t battery_voltage_publisher;
 rcl_publisher_t battery_temp_publisher;
@@ -151,6 +155,9 @@ bool arrs_equal(uint8_t arr1[], uint8_t arr2[], uint8_t len) {
 }
 
 rcl_ret_t ros_publish_rfid(uint8_t bytes[], uint8_t size) {
+    if (time_reached(last_tag_pub_time))
+        memset(last_tag, 0, MAX_UID_SIZE);
+
     if (arrs_equal(bytes, last_tag, MAX_UID_SIZE))
         return RCL_RET_OK;
     memcpy(last_tag, bytes, MAX_UID_SIZE);  // We have a new tag, so copy it in for later
@@ -167,6 +174,7 @@ rcl_ret_t ros_publish_rfid(uint8_t bytes[], uint8_t size) {
     rfid_msg.data.size = str_size;
     rfid_msg.data.capacity = str_size + 1;
 
+    last_tag_pub_time = make_timeout_time_ms(RFID_REFRESH_PERIOD_MS);
     RCSOFTRETCHECK(rcl_publish(&rfid_publisher, &rfid_msg, NULL));
 
     return RCL_RET_OK;
