@@ -28,7 +28,7 @@ float thermistor_get_c(float voltage, thermistor_profile profile) {
     case THERMISTOR_PROFILE_CHASSIS:
         ser_res = THERM_CHASSIS_SERIES_RESISTANCE;
         vref = THERM_CHASSIS_VREF;
-        r25 = THERM_BOARD_R_25;
+        r25 = THERM_CHASSIS_R_25;
         b25_85 = THERM_CHASSIS_B_25_85;
         nominal = THERM_CHASSIS_NOMINAL_TEMP;
         break;
