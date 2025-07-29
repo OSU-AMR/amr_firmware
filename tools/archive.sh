@@ -6,10 +6,10 @@ if ! cd "$(realpath "$(dirname $0)")"; then
     exit 1
 fi
 
-firmware_repo="$(realpath ../titan_firmware)"
+firmware_repo="$(realpath ../amr_firmware)"
 
 if ! [ -d "$firmware_repo" ]; then
-    # Note this is set because I keep the firmware archive in a folder outside the titan_firmware repo
+    # Note this is set because I keep the firmware archive in a folder outside the amr_firmware repo
     # Whoever is building the firmware for relases can move this to whatever folder is recommended
     echo "Unable to locate firmware repo at '$firmware_repo'"
     echo "Ensure you followed the steps to symlink archive.sh to the firmware_archive folder"
