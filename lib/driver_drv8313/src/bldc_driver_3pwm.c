@@ -1,5 +1,7 @@
 #include "bldc_driver_3pwm.h"
 
+#include "fixedptc.h"
+
 #include "hardware/gpio.h"
 #include "titan/logger.h"
 
@@ -45,7 +47,7 @@ int driver_init(BLDCDRIVER3PWM_t *driver) {
     gpio_set_dir(driver->enableA_pin, GPIO_OUT);
 
     // sanity check for the voltage limit configuration
-    if (driver->voltage_limit < 0.01 || driver->voltage_limit > driver->voltage_power_supply)
+    if (driver->voltage_limit < fixedpt_rconst(0.01f) || driver->voltage_limit > driver->voltage_power_supply)
         driver->voltage_limit = driver->voltage_power_supply;
 
     // Set the pwm frequency to the pins
@@ -61,26 +63,21 @@ void driver_setPhaseState(BLDCDRIVER3PWM_t *driver, __unused PhaseState_t sa, __
     gpio_put(driver->enableA_pin, sa == PHASE_ON ? driver->enable_active_high : !driver->enable_active_high);
 }
 
-float _constrain(float val, float min, float max) {
-    if (val < min)
-        return min;
-    else if (val > max)
-        return max;
-    else
-        return val;
+fixedpt _constrain(fixedpt val, fixedpt min, fixedpt max) {
+    return MIN(MAX(val, min), max);
 }
 
 // Set voltage to the pwm pin
-void driver_setPwm(BLDCDRIVER3PWM_t *driver, float Ua, float Ub, float Uc) {
+void driver_setPwm(BLDCDRIVER3PWM_t *driver, fixedpt Ua, fixedpt Ub, fixedpt Uc) {
     // limit the voltage in driver
-    Ua = _constrain(Ua, 0.0f, driver->voltage_limit);
-    Ub = _constrain(Ub, 0.0f, driver->voltage_limit);
-    Uc = _constrain(Uc, 0.0f, driver->voltage_limit);
+    Ua = _constrain(Ua, 0, driver->voltage_limit);
+    Ub = _constrain(Ub, 0, driver->voltage_limit);
+    Uc = _constrain(Uc, 0, driver->voltage_limit);
     // calculate duty cycle
     // limited in [0,1]
-    driver->dc_a = _constrain(Ua / driver->voltage_power_supply, 0.0f, 1.0f);
-    driver->dc_b = _constrain(Ub / driver->voltage_power_supply, 0.0f, 1.0f);
-    driver->dc_c = _constrain(Uc / driver->voltage_power_supply, 0.0f, 1.0f);
+    driver->dc_a = _constrain(fixedpt_div(Ua, driver->voltage_power_supply), 0, fixedpt_fromint(1));
+    driver->dc_b = _constrain(fixedpt_div(Ub, driver->voltage_power_supply), 0, fixedpt_fromint(1));
+    driver->dc_c = _constrain(fixedpt_div(Uc, driver->voltage_power_supply), 0, fixedpt_fromint(1));
 
     // hardware specific writing
     // hardware specific function - depending on driver and mcu

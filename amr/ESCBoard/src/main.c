@@ -1,10 +1,14 @@
+#include "controller.h"
+#include "core1.h"
+#include "ir.h"
 #include "ros.h"
 #include "safety_interface.h"
 
+#include "canmore/protocol.h"
 #include "driver/cd74hc4051.h"
 #include "driver/led.h"
-#include "driver/mfrc522.h"
 #include "pico/stdlib.h"
+#include "titan/debug.h"
 #include "titan/logger.h"
 #include "titan/version.h"
 
@@ -28,12 +32,12 @@
 #define UROS_CONNECT_PING_TIME_MS 1000
 #define HEARTBEAT_TIME_MS 100
 #define FIRMWARE_STATUS_TIME_MS 1000
+#define ROS_TIMESYNC_TIMEOUT_TIME_MS 10
 #define LED_UPTIME_INTERVAL_MS 250
-#define RFID_POLL_PERIOD_MS 100
-#define BATTERY_VOLTAGE_PERIOD_MS 1000
-
-// This value is reasonably accurate for normal voltages
-#define BATTERY_VOLTAGE_OFFSET_V 0.4f
+#define IR_UPDATE_PERIOD_MS 7  // Max uROS can handle
+#define ENCODER_UPDATE_PERIOD_MS 20
+#define THERMISTOR_UPDATE_PERIOD_MS 1000
+// Controller period set in controller.h
 
 // Initialize all to nil time
 // For background timers, they will fire immediately
@@ -42,11 +46,10 @@ absolute_time_t next_heartbeat = { 0 };
 absolute_time_t next_status_update = { 0 };
 absolute_time_t next_led_update = { 0 };
 absolute_time_t next_connect_ping = { 0 };
-absolute_time_t next_rfid_read = { 0 };
-absolute_time_t next_battery_update = { 0 };
-
-MFRC522Ptr_t mfrc;
-bool rfid_ready = false;
+absolute_time_t next_controller_update = { 0 };
+absolute_time_t next_ir_update = { 0 };
+absolute_time_t next_encoder_update = { 0 };
+absolute_time_t next_thermistor_update = { 0 };
 
 /**
  * @brief Check if a timer is ready. If so advance it to the next interval.
@@ -93,7 +96,9 @@ static bool timer_ready(absolute_time_t *next_fire_ptr, uint32_t interval_ms, bo
 static void start_ros_timers() {
     next_heartbeat = make_timeout_time_ms(HEARTBEAT_TIME_MS);
     next_status_update = make_timeout_time_ms(FIRMWARE_STATUS_TIME_MS);
-    next_battery_update = make_timeout_time_ms(BATTERY_VOLTAGE_PERIOD_MS);
+    next_ir_update = make_timeout_time_ms(IR_UPDATE_PERIOD_MS);
+    next_encoder_update = make_timeout_time_ms(ENCODER_UPDATE_PERIOD_MS);
+    next_thermistor_update = make_timeout_time_ms(THERMISTOR_UPDATE_PERIOD_MS);
 }
 
 /**
@@ -127,16 +132,16 @@ static void tick_ros_tasks() {
     }
 
     // TODO: Put any additional ROS tasks added here
-    if (rfid_ready) {
-        RCSOFTRETVCHECK(ros_publish_rfid(mfrc->uid.uidByte, mfrc->uid.size));
-        rfid_ready = false;
+    if (timer_ready(&next_ir_update, IR_UPDATE_PERIOD_MS, false)) {
+        RCSOFTRETVCHECK(ros_publish_ir_sensors());
     }
 
-    if (timer_ready(&next_battery_update, BATTERY_VOLTAGE_PERIOD_MS, false)) {
-        float vout = multiplexer_decode_analog(BATT_VOLT_MUX_NUM);
+    if (timer_ready(&next_encoder_update, ENCODER_UPDATE_PERIOD_MS, false)) {
+        RCSOFTRETVCHECK(ros_publish_encoders());
+    }
 
-        float vin = vout * (BATT_VOLT_R1 + BATT_VOLT_R2) / BATT_VOLT_R2 + BATTERY_VOLTAGE_OFFSET_V;
-        ros_publish_battery_state(vin);
+    if (timer_ready(&next_thermistor_update, THERMISTOR_UPDATE_PERIOD_MS, false)) {
+        RCSOFTRETVCHECK(ros_publish_thermistors());
     }
 }
 
@@ -166,13 +171,37 @@ static void tick_background_tasks() {
     }
 #endif
 
-    // TODO: Put any code that should periodically occur here
-
-    // Use short circuit eval to only check the RFID periodically since polling it takes 25 ms
-    if (timer_ready(&next_rfid_read, RFID_POLL_PERIOD_MS, true) && PICC_IsNewCardPresent(mfrc)) {
-        PICC_ReadCardSerial(mfrc);
-        rfid_ready = true;
+    // Probably make this a non-critical timer later
+    if (timer_ready(&next_controller_update, CONTROLLER_PERIOD_MS, false)) {
+        controller_tick();
     }
+}
+
+float curr_cmd[2] = { 0.0f };
+bool curr_cmd_set = false;
+bool bad_packet_len = false;
+size_t packet_len;
+
+uint8_t cmd_buf[2][4] = { 0 };
+
+static void motor_cmd_callback(__unused uint32_t channel, uint8_t *buf, size_t len) {
+    // This needs to be copied before casting since buf might not be word aligned
+    float motor_cmds[NUM_MOTORS];
+
+    if (len != sizeof(motor_cmds)) {
+        LOG_DEBUG("Dropping invalid packet with length %d", len);
+        return;
+    }
+
+    for (size_t i = 0; i < NUM_MOTORS; i++) {
+        size_t idx = i * 4;
+
+        // TODO: uncurse this
+        int bits_rep = (buf[idx + 3] << 24) | (buf[idx + 2] << 16) | (buf[idx + 1] << 8) | (buf[idx]);
+        motor_cmds[i] = *(float *) &bits_rep;
+    }
+
+    controller_set_target(motor_cmds);
 }
 
 int main() {
@@ -191,16 +220,12 @@ int main() {
     led_init();
     micro_ros_init_error_handling();
     // TODO: Put any additional hardware initialization code here
-
-    // Init RFID
-    mfrc = MFRC522_Init(RFID_CS_PIN);
-    PCD_Init(mfrc, pio0, RFID_MISO_PIN, RFID_MOSI_PIN, RFID_CLK_PIN, RFID_CS_PIN);
-    PCD_SetAntennaGain(mfrc, (0x07 << 4));  // Set rx gain to max
-    // Don't start polling the RFID right away or we'll miss a timer on startup
-    next_rfid_read = make_timeout_time_ms(RFID_POLL_PERIOD_MS);
-
-    // Init mux
     multiplexer_init(MP_DATA_PIN, MP_S0_PIN, MP_S1_PIN, MP_S2_PIN);
+    controller_init();
+
+    ir_init(IR0_PIN);
+    ir_init(IR1_PIN);
+    ir_init(IR2_PIN);
 
 // Initialize ROS Transports
 // TODO: If a transport won't be needed for your specific build (like it's lacking the proper port), you can remove it
@@ -208,16 +233,18 @@ int main() {
     uint can_id = CAN_BUS_CLIENT_ID;
     bi_decl_if_func_used(bi_client_id(CAN_BUS_CLIENT_ID));
     if (!transport_can_init(can_id)) {
-        // No point in continuing onwards from here, if we can't initialize CAN hardware might as well panic and
-        // retry
+        // No point in continuing onwards from here, if we can't initialize CAN hardware might as well panic and retry
         panic("Failed to initialize CAN bus hardware!");
     }
 #endif
 
+    // Register callback for out of bands motor comms
+    // This must be done after CAN is successfully established
+    canbus_utility_frame_register_cb(CANMORE_CHAN_MOTOR_CMDS, &motor_cmd_callback);
+
 #ifdef MICRO_ROS_TRANSPORT_ETH
     if (!transport_eth_init()) {
-        // No point in continuing onwards from here, if we can't initialize ETH hardware might as well panic and
-        // retry
+        // No point in continuing onwards from here, if we can't initialize ETH hardware might as well panic and retry
         panic("Failed to initialize Ethernet hardware!");
     }
 #endif
@@ -249,6 +276,8 @@ int main() {
                     ros_initialized = true;
                     led_ros_connected_set(true);
                     safety_init();
+                    // Fetch ROS timestamp on ROS init
+                    rmw_uros_sync_session(ROS_TIMESYNC_TIMEOUT_TIME_MS);
                     start_ros_timers();
                 }
                 else {

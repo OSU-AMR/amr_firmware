@@ -1,6 +1,8 @@
 #include "ros.h"
 
+#include "driver/cd74hc4051.h"
 #include "driver/mfrc522.h"
+#include "driver/thermistor.h"
 #include "pico/stdlib.h"
 #include "titan/logger.h"
 #include "titan/version.h"
@@ -12,6 +14,7 @@
 #include <rmw_microros/rmw_microros.h>
 #include <amr_msgs/msg/firmware_status.h>
 #include <std_msgs/msg/bool.h>
+#include <std_msgs/msg/float32.h>
 #include <std_msgs/msg/int8.h>
 #include <std_msgs/msg/string.h>
 
@@ -27,6 +30,11 @@
 #define FIRMWARE_STATUS_PUBLISHER_NAME "state/firmware"
 #define KILLSWITCH_SUBCRIBER_NAME "state/kill"
 #define RFID_PUBLISHER_NAME "state/rfid"
+#define BATTERY_VOLTAGE_PUBLISHER_NAME "state/battery/voltage"
+#define BATTERY_TEMP_PUBLISHER_NAME "state/battery/temperature"
+
+// TODO: Move RFID handling out of ros.c
+#define RFID_REFRESH_PERIOD_MS 1000
 
 bool ros_connected = false;
 
@@ -46,6 +54,10 @@ std_msgs__msg__Bool killswitch_msg;
 
 rcl_publisher_t rfid_publisher;
 uint8_t last_tag[MAX_UID_SIZE];
+absolute_time_t last_tag_pub_time = { 0 };
+
+rcl_publisher_t battery_voltage_publisher;
+rcl_publisher_t battery_temp_publisher;
 
 // ========================================
 // Executor Callbacks
@@ -143,6 +155,9 @@ bool arrs_equal(uint8_t arr1[], uint8_t arr2[], uint8_t len) {
 }
 
 rcl_ret_t ros_publish_rfid(uint8_t bytes[], uint8_t size) {
+    if (time_reached(last_tag_pub_time))
+        memset(last_tag, 0, MAX_UID_SIZE);
+
     if (arrs_equal(bytes, last_tag, MAX_UID_SIZE))
         return RCL_RET_OK;
     memcpy(last_tag, bytes, MAX_UID_SIZE);  // We have a new tag, so copy it in for later
@@ -159,7 +174,19 @@ rcl_ret_t ros_publish_rfid(uint8_t bytes[], uint8_t size) {
     rfid_msg.data.size = str_size;
     rfid_msg.data.capacity = str_size + 1;
 
+    last_tag_pub_time = make_timeout_time_ms(RFID_REFRESH_PERIOD_MS);
     RCSOFTRETCHECK(rcl_publish(&rfid_publisher, &rfid_msg, NULL));
+
+    return RCL_RET_OK;
+}
+
+rcl_ret_t ros_publish_battery_state(float voltage) {
+    std_msgs__msg__Float32 voltage_msg, temp_msg;
+    voltage_msg.data = voltage;
+    temp_msg.data = thermistor_get_c(multiplexer_decode_analog(BATT_TEMP_MUX_NUM), THERMISTOR_PROFILE_CHASSIS);
+
+    RCSOFTRETCHECK(rcl_publish(&battery_voltage_publisher, &voltage_msg, NULL));
+    RCSOFTRETCHECK(rcl_publish(&battery_temp_publisher, &temp_msg, NULL));
 
     return RCL_RET_OK;
 }
@@ -184,6 +211,14 @@ rcl_ret_t ros_init() {
 
     RCRETCHECK(rclc_publisher_init_default(&rfid_publisher, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String),
                                            RFID_PUBLISHER_NAME));
+
+    RCRETCHECK(rclc_publisher_init_default(&battery_voltage_publisher, &node,
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+                                           BATTERY_VOLTAGE_PUBLISHER_NAME));
+
+    RCRETCHECK(rclc_publisher_init_default(&battery_temp_publisher, &node,
+                                           ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+                                           BATTERY_TEMP_PUBLISHER_NAME));
 
     RCRETCHECK(rclc_subscription_init_best_effort(
         &killswtich_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool), KILLSWITCH_SUBCRIBER_NAME));
@@ -215,6 +250,8 @@ void ros_fini(void) {
     RCSOFTCHECK(rcl_publisher_fini(&heartbeat_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&firmware_status_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&rfid_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&battery_voltage_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&battery_temp_publisher, &node));
     RCSOFTCHECK(rclc_executor_fini(&executor));
     RCSOFTCHECK(rcl_node_fini(&node));
     RCSOFTCHECK(rclc_support_fini(&support));

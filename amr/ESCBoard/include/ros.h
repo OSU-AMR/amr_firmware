@@ -90,12 +90,11 @@ rcl_ret_t ros_heartbeat_pulse(uint8_t client_id);
 
 rcl_ret_t ros_update_firmware_status(uint8_t client_id);
 
-rcl_ret_t ros_publish_rfid(uint8_t bytes[], uint8_t size);
+rcl_ret_t ros_publish_ir_sensors();
 
-rcl_ret_t ros_publish_battery_state(float voltage);
+rcl_ret_t ros_publish_encoders();
 
-// #undef MICRO_ROS_TRANSPORT_CAN
-// #define MICRO_ROS_TRANSPORT_USB 1
+rcl_ret_t ros_publish_thermistors();
 
 #undef MICRO_ROS_TRANSPORT_USB
 #define MICRO_ROS_TRANSPORT_CAN 1
