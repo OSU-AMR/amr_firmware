@@ -26,6 +26,11 @@
         // AMR Boards
         // ========================================
         {
+            "name": "AMR ESC Board 4",
+            "boardType": "amr/esc_board",
+            "serial": "E46211015B0F4D31"
+        },
+        {
             "name": "AMR Power Board 4",
             "boardType": "amr/power_board",
             "serial": "E46211015B212931"
